@@ -1,0 +1,2 @@
+AspectJ sbt plugin
+==================
