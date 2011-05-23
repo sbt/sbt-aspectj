@@ -60,11 +60,11 @@ trait AspectjProject extends DefaultProject {
   val aspectj = config("aspectj") hide
   val aspectjClasspath = managedClasspath(aspectj)
 
+  // use the typesafe repo cache for dependencies
+
+  val typesafeRepo = "Typesafe Repo" at "http://repo.typesafe.com/typesafe/releases/"
+
   // AspectJ dependencies
-
-  lazy val SpringSourceRepo = MavenRepository("Spring Source Repository", "http://maven.springframework.org/release")
-
-  lazy val aspectjModuleConfig = ModuleConfiguration("org.aspectj", SpringSourceRepo)
 
   val aspectjTools = "org.aspectj" % "aspectjtools" % AspectjVersion % "aspectj"
 
