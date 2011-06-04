@@ -5,7 +5,6 @@ Usage:
 
 <pre>
   class MyAspectJProject(info: ProjectInfo) extends DefaultProject(info) with AspectjProject {
-
     ...
 
     // AspectJ setup
