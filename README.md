@@ -3,42 +3,41 @@ AspectJ sbt plugin
 
 Usage: 
 
-<pre>
-  class MyAspectJProject(info: ProjectInfo) extends DefaultProject(info) with AspectjProject {
-    ...
+      class MyAspectJProject(info: ProjectInfo) extends DefaultProject(info) with AspectjProject {
 
-    // AspectJ setup
+        ...
 
-    //override def showWeaveInfo = true
-    //override def aspectjVerbose = true
+        // AspectJ setup
 
-    val akkaTargetJars = configurationPath(Configurations.Compile) ** ("akka-actor-*.jar" || "akka-remote-*.jar")
+        //override def showWeaveInfo = true
+        //override def aspectjVerbose = true
 
-    val testsJars = configurationPath(Configurations.Compile) ** "*tests*.jar"
-    val sourcesJars = configurationPath(Configurations.Compile) ** "*sources*.jar"
-    val docsJars = configurationPath(Configurations.Compile) ** "*docs*.jar"
+        val akkaTargetJars = configurationPath(Configurations.Compile) ** ("akka-actor-*.jar" || "akka-remote-*.jar")
 
-    val aspectjTargetJars = akkaTargetJars --- testsJars --- sourcesJars --- docsJars
+        val testsJars = configurationPath(Configurations.Compile) ** "*tests*.jar"
+        val sourcesJars = configurationPath(Configurations.Compile) ** "*sources*.jar"
+        val docsJars = configurationPath(Configurations.Compile) ** "*docs*.jar"
 
-    override def filterAspects(jar: Path, aspects: PathFinder): PathFinder = {
-      if (jar.name.contains("akka-actor")) aspects ** "Actor*"
-      else if (jar.name.contains("akka-remote")) aspects ** "Remote*"
-      else Path.emptyPathFinder
-    }
+        val aspectjTargetJars = akkaTargetJars --- testsJars --- sourcesJars --- docsJars
 
-    // add ajc to task dependencies
+        override def filterAspects(jar: Path, aspects: PathFinder): PathFinder = {
+          if (jar.name.contains("akka-actor")) aspects ** "Actor*"
+          else if (jar.name.contains("akka-remote")) aspects ** "Remote*"
+          else Path.emptyPathFinder
+        }
 
-    override def testCompileAction = super.testCompileAction dependsOn(ajc)
-    override def packageAction = super.packageAction dependsOn(ajc)
+        // add ajc to task dependencies
 
-    // alter the runtime classpath for all the ways that sbt accesses it, including inter-project dependencies
+        override def testCompileAction = super.testCompileAction dependsOn(ajc)
+        override def packageAction = super.packageAction dependsOn(ajc)
 
-    def instrumentedJars = aspectjOutputPath ** "*.jar"
-    def removeJars = aspectjTargetJars +++ sourcesJars +++ docsJars
+        // alter the runtime classpath for all the ways that sbt accesses it, including inter-project dependencies
 
-    override def managedClasspath(config: Configuration) = config match {
-      case Configurations.Runtime => super.managedClasspath(config) --- removeJars +++ instrumentedJars
-      case otherConfig            => super.managedClasspath(otherConfig)
-    }
-  }
-<pre>
+        def instrumentedJars = aspectjOutputPath ** "*.jar"
+        def removeJars = aspectjTargetJars +++ sourcesJars +++ docsJars
+
+        override def managedClasspath(config: Configuration) = config match {
+          case Configurations.Runtime => super.managedClasspath(config) --- removeJars +++ instrumentedJars
+          case otherConfig            => super.managedClasspath(otherConfig)
+        }
+      }
