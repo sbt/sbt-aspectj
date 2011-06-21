@@ -72,9 +72,7 @@ trait AspectjProject extends DefaultProject {
 
   // Implementation
 
-  private def inPath(jar: Path) = (jar +++ mainCompilePath).absString
-
-  private val ajcClasspath = aspectjClasspath +++ compileClasspath +++ mainDependencies.scalaLibrary
+  private val ajcClasspath = aspectjClasspath +++ compileClasspath +++ mainCompilePath +++ mainDependencies.scalaLibrary
 
   private def ajcOptions(jar: Path, aspects: PathFinder, outputJar: Path) = {
     var options = List[String]()
@@ -83,7 +81,7 @@ trait AspectjProject extends DefaultProject {
     options ::= "-classpath"
     options ::= ajcClasspath.absString
     options ::= "-inpath"
-    options ::= inPath(jar)
+    options ::= jar.absString
     options ::= "-outjar"
     options ::= outputJar.absolutePath
     options ::= sourceLevel
