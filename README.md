@@ -1,43 +1,46 @@
 AspectJ sbt plugin
 ==================
 
-Usage: 
+Add plugin
+----------
 
-      class MyAspectJProject(info: ProjectInfo) extends DefaultProject(info) with AspectjProject {
+Add plugin to `project/plugins` build. For example:
 
-        ...
+    resolvers += "Typesafe Repo" at "http://repo.typesafe.com/typesafe/releases/"
 
-        // AspectJ setup
+    libraryDependencies += "com.typesafe" %% "aspectj-sbt-plugin" % "0.4.0"
 
-        //override def showWeaveInfo = true
-        //override def aspectjVerbose = true
 
-        val akkaTargetJars = configurationPath(Configurations.Compile) ** ("akka-actor-*.jar" || "akka-remote-*.jar")
+Example settings
+----------------
 
-        val testsJars = configurationPath(Configurations.Compile) ** "*tests*.jar"
-        val sourcesJars = configurationPath(Configurations.Compile) ** "*sources*.jar"
-        val docsJars = configurationPath(Configurations.Compile) ** "*docs*.jar"
+Set the input filter, which filters jars in the managed-classpath to those that
+should be instrumented:
 
-        val aspectjTargetJars = akkaTargetJars --- testsJars --- sourcesJars --- docsJars
+    inputFilter in Aspectj := {
+      jar => { jar.name.startsWith("akka-actor") || jar.name.startsWith("akka-remote") }
+    }
 
-        override def filterAspects(jar: Path, aspects: PathFinder): PathFinder = {
-          if (jar.name.contains("akka-actor")) aspects ** "Actor*"
-          else if (jar.name.contains("akka-remote")) aspects ** "Remote*"
-          else Path.emptyPathFinder
-        }
+Set the aspect filter, to map jars to aspects:
 
-        // add ajc to task dependencies
-
-        override def testCompileAction = super.testCompileAction dependsOn(ajc)
-        override def packageAction = super.packageAction dependsOn(ajc)
-
-        // alter the runtime classpath for all the ways that sbt accesses it, including inter-project dependencies
-
-        def instrumentedJars = aspectjOutputPath ** "*.jar"
-        def removeJars = aspectjTargetJars +++ sourcesJars +++ docsJars
-
-        override def managedClasspath(config: Configuration) = config match {
-          case Configurations.Runtime => super.managedClasspath(config) --- removeJars +++ instrumentedJars
-          case otherConfig            => super.managedClasspath(otherConfig)
-        }
+    aspectFilter in Aspectj := {
+      (jar, aspects) => {
+        if (jar.name.contains("akka-actor")) aspects filter (_.name.startsWith("Actor"))
+        else if (jar.name.contains("akka-remote")) aspects filter (_.name.startsWith("Remote"))
+        else Seq.empty[File]
       }
+    }
+
+Replace the original jars in the test classpath with the instrumented jars: 
+
+    fullClasspath in Test <<= (fullClasspath in Test, aspectMappings in Aspectj, weave in Aspectj) map {
+      (cp, mappings, woven) => {
+        cp map { a => mappings.find(_.in == a.data).map(_.out).map(Attributed.blank).getOrElse(a) }
+      }
+    }
+
+
+Weave
+-----
+
+The command to run the aspectj compiler is `aspectj:weave`.
