@@ -115,4 +115,12 @@ object AspectjPlugin {
     Seq("-inpath", in.absolutePath, "-outjar", out.absolutePath) ++
     aspects.map(_.absolutePath)
   }
+
+  def useInstrumentedJars(config: Configuration) = {
+    (fullClasspath in config, aspectMappings in Aspectj, weave in Aspectj) map {
+      (cp, mappings, woven) => {
+        cp map { a => mappings.find(_.in == a.data).map(_.out).map(Attributed.blank).getOrElse(a) }
+      }
+    }
+  }
 }
