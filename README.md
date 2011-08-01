@@ -8,7 +8,7 @@ Add plugin to `project/plugins` build. For example:
 
     resolvers += "Typesafe Repo" at "http://repo.typesafe.com/typesafe/releases/"
 
-    libraryDependencies += "com.typesafe" %% "aspectj-sbt-plugin" % "0.4.0"
+    libraryDependencies += "com.typesafe.sbt-aspectj" %% "sbt-aspectj" % "0.4.2"
 
 
 Example settings

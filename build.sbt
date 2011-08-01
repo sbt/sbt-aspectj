@@ -1,11 +1,11 @@
 
 sbtPlugin := true
 
-organization := "com.typesafe"
+organization := "com.typesafe.sbt-aspectj"
 
-name := "aspectj-sbt-plugin"
+name := "sbt-aspectj"
 
-version := "0.4.2"
+version := "0.4.3-SNAPSHOT"
 
 resolvers += "Typesafe Repo" at "http://repo.typesafe.com/typesafe/releases/"
 
@@ -14,5 +14,3 @@ libraryDependencies += "org.aspectj" % "aspectjtools" % "1.6.11"
 publishMavenStyle := true
 
 publishTo := Some("Typesafe Publish Repo" at "http://repo.typesafe.com/typesafe/maven-releases/")
-
-credentials += Credentials(Path.userHome / ".ivy2" / "typesafe-credentials")
