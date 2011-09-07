@@ -8,18 +8,17 @@ Add plugin to `project/plugins` build. For example:
 
     resolvers += "Typesafe Repo" at "http://repo.typesafe.com/typesafe/releases/"
 
-    libraryDependencies += "com.typesafe.sbt-aspectj" %% "sbt-aspectj" % "0.4.2"
+    libraryDependencies += "com.typesafe.sbt-aspectj" %% "sbt-aspectj" % "0.4.3"
 
 
 Example settings
 ----------------
 
-Set the input filter, which filters jars in the managed-classpath to those that
-should be instrumented:
+Set the aspectj inputs, the jars which should be instrumented. This is an ordered sequence of jars where instrumentation can be chained.
 
-    inputFilter in Aspectj := {
-      jar => { jar.name.startsWith("akka-actor") || jar.name.startsWith("akka-remote") }
-    }
+  inputs in Aspectj <<= update map { report =>
+    report.matching(moduleFilter(organization = "se.scalablesolutions.akka", name = "akka-actor" | "akka-remote")).sortBy(_.name)
+  }
 
 Set the aspect filter, to map jars to aspects:
 
@@ -31,13 +30,9 @@ Set the aspect filter, to map jars to aspects:
       }
     }
 
-Replace the original jars in the test classpath with the instrumented jars: 
+Replace the original jars in the test classpath with the instrumented jars:
 
-    fullClasspath in Test <<= (fullClasspath in Test, aspectMappings in Aspectj, weave in Aspectj) map {
-      (cp, mappings, woven) => {
-        cp map { a => mappings.find(_.in == a.data).map(_.out).map(Attributed.blank).getOrElse(a) }
-      }
-    }
+    fullClasspath in Test <<= AspectjPlugin.useInstrumentedJars(Test)
 
 
 Weave

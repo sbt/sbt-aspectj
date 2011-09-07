@@ -4,9 +4,9 @@ import Keys._
 
 import java.io.File
 
-case class Mapping(in: File, aspects: Seq[File], out: File)
-
 object AspectjPlugin {
+  case class Mapping(in: File, aspects: Seq[File], out: File)
+
   val Aspectj = config("aspectj") hide
 
   val aspectjVersion = SettingKey[String]("aspectj-version")
@@ -17,7 +17,6 @@ object AspectjPlugin {
   val verbose = SettingKey[Boolean]("verbose")
   val sourceLevel = SettingKey[String]("source-level")
 
-  val inputFilter = SettingKey[File => Boolean]("input-filter")
   val aspectFilter = SettingKey[(File, Seq[File]) => Seq[File]]("aspect-filter")
 
   val aspectjClasspath = TaskKey[Classpath]("aspectj-classpath")
@@ -42,8 +41,7 @@ object AspectjPlugin {
     dependencyClasspath <<= (fullClasspath in Compile).identity,
     aspectjClasspath <<= (managedClasspath, dependencyClasspath) map { _ ++ _ },
     baseOptions <<= ajcBaseOptions,
-    inputFilter := { f => false },
-    inputs <<= aspectjInputs,
+    inputs := Seq.empty,
     sources <<= aspectjDirectory map { dir => (dir ** "*.aj").get },
     aspectFilter := { (f, a) => a },
     aspectMappings <<= mapAspects,
@@ -55,16 +53,12 @@ object AspectjPlugin {
     libraryDependencies <+= (aspectjVersion in Aspectj)("org.aspectj" % "aspectjtools" % _ % Aspectj.name),
     libraryDependencies <+= (aspectjVersion in Aspectj)("org.aspectj" % "aspectjrt" % _))
 
-  def ajcBaseOptions = (showWeaveInfo, verbose, sourceLevel, aspectjClasspath) map {
-    (info, verbose, level, cp) => {
+  def ajcBaseOptions = (showWeaveInfo, verbose, sourceLevel) map {
+    (info, verbose, level) => {
       (if (info) Seq("-showWeaveInfo") else Seq.empty[String]) ++
       (if (verbose) Seq("-verbose") else Seq.empty[String]) ++
-      Seq(level, "-classpath", cp.files.absString)
+      Seq(level)
     }
-  }
-
-  def aspectjInputs = (managedClasspath in Compile, inputFilter) map {
-    (cp, f) => cp.files.filter(f)
   }
 
   def mapAspects = (inputs, sources, aspectFilter, outputDirectory) map {
@@ -79,11 +73,14 @@ object AspectjPlugin {
     new File(outputDir, outputName)
   }
 
-  def weaveTask = (cacheDirectory, aspectMappings, baseOptions, streams) map {
-    (cache, mappings, options, s) => {
+  def weaveTask = (cacheDirectory, aspectMappings, baseOptions, aspectjClasspath, streams) map {
+    (cache, mappings, options, cp, s) => {
       val cached = FileFunction.cached(cache / "aspectj", FilesInfo.hash) { _ =>
-        mappings.map( mapping => {
-          runAjc(mapping.in, mapping.aspects, mapping.out, options, s.log)
+        val withPrevious = mappings.zipWithIndex map { case (m, i) => (mappings.take(i), m) }
+        (withPrevious map { case (previousMappings, mapping) =>
+          val classpath = insertInstrumentedJars(cp, previousMappings)
+          val classpathOption = Seq("-classpath", classpath.files.absString)
+          runAjc(mapping.in, mapping.aspects, mapping.out, options ++ classpathOption, s.log)
           mapping.out
         }).toSet
       }
@@ -118,9 +115,11 @@ object AspectjPlugin {
 
   def useInstrumentedJars(config: Configuration) = {
     (fullClasspath in config, aspectMappings in Aspectj, weave in Aspectj) map {
-      (cp, mappings, woven) => {
-        cp map { a => mappings.find(_.in == a.data).map(_.out).map(Attributed.blank).getOrElse(a) }
-      }
+      (cp, mappings, woven) => insertInstrumentedJars(cp, mappings)
     }
+  }
+
+  def insertInstrumentedJars(classpath: Classpath, mappings: Seq[Mapping]) = {
+    classpath map { a => mappings.find(_.in == a.data).map(_.out).map(Attributed.blank).getOrElse(a) }
   }
 }
