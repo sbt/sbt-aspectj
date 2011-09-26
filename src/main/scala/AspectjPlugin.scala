@@ -1,3 +1,5 @@
+package com.typesafe.sbtaspectj
+
 import sbt._
 import Configurations.Compile
 import Keys._
@@ -38,7 +40,7 @@ object AspectjPlugin {
     verbose := false,
     sourceLevel := "-1.5",
     managedClasspath <<= (configuration, classpathTypes, update) map Classpaths.managedJars,
-    dependencyClasspath <<= (fullClasspath in Compile).identity,
+    dependencyClasspath <<= fullClasspath in Compile,
     aspectjClasspath <<= (managedClasspath, dependencyClasspath) map { _ ++ _ },
     baseOptions <<= ajcBaseOptions,
     inputs := Seq.empty,

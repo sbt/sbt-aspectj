@@ -1,14 +1,20 @@
 AspectJ sbt plugin
 ==================
 
+[sbt] plugin for weaving with [aspectj]. This plugin requires sbt 0.11.0.
+
+[sbt]: https://github.com/harrah/xsbt
+[aspectj]: http://www.eclipse.org/aspectj/
+
+
 Add plugin
 ----------
 
-Add plugin to `project/plugins` build. For example:
+Add plugin to `project/plugins.sbt`. For example:
 
-    resolvers += "Typesafe Repo" at "http://repo.typesafe.com/typesafe/releases/"
+    resolvers += Classpaths.typesafeResolver
 
-    libraryDependencies += "com.typesafe.sbt-aspectj" %% "sbt-aspectj" % "0.4.3"
+    addSbtPlugin("com.typesafe.sbtaspectj" % "sbt-aspectj" % "0.4.4")
 
 
 Example settings
