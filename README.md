@@ -17,14 +17,22 @@ Add plugin to `project/plugins.sbt`. For example:
     addSbtPlugin("com.typesafe.sbtaspectj" % "sbt-aspectj" % "0.4.4")
 
 
+Sample project
+--------------
+
+There is a runnable sample project included under [sample].
+
+[sample]: https://github.com/typesafehub/sbt-aspectj/tree/master/sample
+
+
 Example settings
 ----------------
 
 Set the aspectj inputs, the jars which should be instrumented. This is an ordered sequence of jars where instrumentation can be chained.
 
-  inputs in Aspectj <<= update map { report =>
-    report.matching(moduleFilter(organization = "se.scalablesolutions.akka", name = "akka-actor" | "akka-remote")).sortBy(_.name)
-  }
+    inputs in Aspectj <<= update map { report =>
+      report.matching(moduleFilter(organization = "se.scalablesolutions.akka", name = "akka-actor" | "akka-remote")).sortBy(_.name)
+    }
 
 Set the aspect filter, to map jars to aspects:
 
