@@ -8,7 +8,7 @@ import akka.actor._
 
 class SampleActor extends Actor {
   def receive = {
-  	case message: String => self.reply("hello " + message)
+    case message: String => self.reply("hello " + message)
   }
 }
 
