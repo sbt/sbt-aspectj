@@ -5,7 +5,7 @@ organization := "com.typesafe.sbtaspectj"
 
 name := "sbt-aspectj"
 
-version := "0.4.5-SNAPSHOT"
+version := "0.5"
 
 resolvers += "Typesafe Repo" at "http://repo.typesafe.com/typesafe/releases/"
 
