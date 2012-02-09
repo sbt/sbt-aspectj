@@ -33,7 +33,7 @@ object AspectjPlugin {
   lazy val settings: Seq[Setting[_]] = inConfig(Aspectj)(aspectjSettings) ++ dependencySettings
 
   def aspectjSettings = Seq(
-    aspectjVersion := "1.6.11",
+    aspectjVersion := "1.6.12",
     aspectjDirectory <<= sourceDirectory(_ / "main" / "aspectj"),
     outputDirectory <<= crossTarget / "aspectj",
     showWeaveInfo := false,
@@ -69,9 +69,12 @@ object AspectjPlugin {
     }
   }
 
-  def instrumented(jar: File, outputDir: File): File = {
-    val (base, ext) = jar.baseAndExt
-    val outputName = base + "-instrumented" + "." + ext
+  def instrumented(input: File, outputDir: File): File = {
+    val (base, ext) = input.baseAndExt
+    val outputName = if (input.isDirectory)
+      base + "-instrumented"
+    else
+      base + "-instrumented" + "." + ext
     new File(outputDir, outputName)
   }
 
@@ -93,25 +96,34 @@ object AspectjPlugin {
     }
   }
 
-  def runAjc(jar: File, aspects: Seq[File], outputJar: File, baseOptions: Seq[String], log: Logger) = {
-    IO.createDirectory(outputJar.getParentFile)
+  def runAjc(input: File, aspects: Seq[File], output: File, baseOptions: Seq[String], log: Logger) = {
+    IO.createDirectory(output.getParentFile)
     if (aspects.isEmpty) {
-      log.info("No aspects for %s" format jar)
-      log.info("Copying jar to %s" format outputJar)
-      IO.copyFile(jar, outputJar, false)
+      log.info("No aspects for %s" format input)
+      if (input.isDirectory) {
+        log.info("Copying path to %s" format output)
+        output.delete
+        IO.copyDirectory(input, output)
+      } else {
+        log.info("Copying jar to %s" format output)
+        IO.copyFile(input, output, false)
+      }
     } else {
-      log.info("Weaving %s with aspects:" format jar)
+      log.info("Weaving %s with aspects:" format input)
       aspects foreach { f => log.info("  " + f.absolutePath) }
-      log.info("to %s" format outputJar)
+      log.info("to %s" format output)
       val ajc = new org.aspectj.tools.ajc.Main
-      val options = ajcOptions(jar, aspects, outputJar, baseOptions).toArray
+      val options = ajcOptions(input, aspects, output, baseOptions).toArray
       ajc.runMain(options, false)
     }
   }
 
   def ajcOptions(in: File, aspects: Seq[File], out: File, baseOptions: Seq[String]): Seq[String] = {
     baseOptions ++
-    Seq("-inpath", in.absolutePath, "-outjar", out.absolutePath) ++
+    (if (in.isDirectory)
+      Seq("-inpath", in.absolutePath, "-d", out.absolutePath)
+    else
+      Seq("-inpath", in.absolutePath, "-outjar", out.absolutePath)) ++
     aspects.map(_.absolutePath)
   }
 
