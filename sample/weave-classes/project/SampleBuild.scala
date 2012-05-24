@@ -20,7 +20,7 @@ object SampleBuild extends Build {
       inputs in Aspectj <<= classDirectory in Compile map { Seq(_) },
       fullClasspath in Test <<= AspectjPlugin.useInstrumentedClasses(Test),
       fullClasspath in Runtime <<= AspectjPlugin.useInstrumentedClasses(Runtime),
-      products in Compile <<= (products in Compile, weave in Aspectj) map { (_, i) => i }
+      products in Compile <<= weave in Aspectj map identity
     )
   )
 }

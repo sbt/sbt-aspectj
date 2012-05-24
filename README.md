@@ -1,7 +1,7 @@
 AspectJ sbt plugin
 ==================
 
-[sbt] plugin for weaving with [aspectj]. This plugin requires sbt 0.11.2.
+[sbt] plugin for weaving with [aspectj]. This plugin requires sbt 0.11.3.
 
 [sbt]: https://github.com/harrah/xsbt
 [aspectj]: http://www.eclipse.org/aspectj/
