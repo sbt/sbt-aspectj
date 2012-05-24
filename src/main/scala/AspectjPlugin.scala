@@ -21,6 +21,7 @@ object AspectjPlugin {
 
   val aspectFilter = SettingKey[(File, Seq[File]) => Seq[File]]("aspect-filter")
 
+  val compiledClasses = TaskKey[File]("compiled-classes")
   val aspectjClasspath = TaskKey[Classpath]("aspectj-classpath")
   val baseOptions = TaskKey[Seq[String]]("base-options")
 
@@ -40,8 +41,13 @@ object AspectjPlugin {
     verbose := false,
     sourceLevel := "-1.5",
     managedClasspath <<= (configuration, classpathTypes, update) map Classpaths.managedJars,
-    dependencyClasspath <<= fullClasspath in Compile,
-    aspectjClasspath <<= (managedClasspath, dependencyClasspath) map { _ ++ _ },
+    dependencyClasspath <<= dependencyClasspath in Compile,
+    compiledClasses <<= (compile in Compile, compileInputs in Compile, copyResources in Compile) map {
+      (_, inputs, _) => inputs.config.classesDirectory
+    },
+    aspectjClasspath <<= (managedClasspath, dependencyClasspath, compiledClasses) map {
+      (mcp, dcp, classes) => Attributed.blank(classes) +: (mcp ++ dcp)
+    },
     baseOptions <<= ajcBaseOptions,
     inputs := Seq.empty,
     sources <<= aspectjDirectory map { dir => (dir ** "*.aj").get },
@@ -71,11 +77,11 @@ object AspectjPlugin {
 
   def instrumented(input: File, outputDir: File): File = {
     val (base, ext) = input.baseAndExt
-    val outputName = if (input.isDirectory)
-      base + "-instrumented"
-    else
-      base + "-instrumented" + "." + ext
-    new File(outputDir, outputName)
+    val outputName = {
+      if (ext.isEmpty) base + "-instrumented"
+      else base + "-instrumented" + "." + ext
+    }
+    outputDir / outputName
   }
 
   def weaveTask = (cacheDirectory, aspectMappings, baseOptions, aspectjClasspath, streams) map {
@@ -112,6 +118,10 @@ object AspectjPlugin {
       log.info("Weaving %s with aspects:" format input)
       aspects foreach { f => log.info("  " + f.absolutePath) }
       log.info("to %s" format output)
+      if (input.isDirectory) {
+        val resources = (input ** -"*.class") x rebase(input, output)
+        IO.copy(resources)
+      }
       val ajc = new org.aspectj.tools.ajc.Main
       val options = ajcOptions(input, aspects, output, baseOptions).toArray
       ajc.runMain(options, false)
@@ -120,20 +130,21 @@ object AspectjPlugin {
 
   def ajcOptions(in: File, aspects: Seq[File], out: File, baseOptions: Seq[String]): Seq[String] = {
     baseOptions ++
-    (if (in.isDirectory)
-      Seq("-inpath", in.absolutePath, "-d", out.absolutePath)
-    else
-      Seq("-inpath", in.absolutePath, "-outjar", out.absolutePath)) ++
+    Seq("-inpath", in.absolutePath) ++
+    { if (in.isDirectory) Seq("-d", out.absolutePath) else Seq("-outjar", out.absolutePath) } ++
     aspects.map(_.absolutePath)
   }
 
-  def useInstrumentedJars(config: Configuration) = {
+  def useInstrumentedJars(config: Configuration) = useInstrumentedClasses(config)
+  def insertInstrumentedJars(classpath: Classpath, mappings: Seq[Mapping]) = insertInstrumentedClasses(classpath, mappings)
+
+  def useInstrumentedClasses(config: Configuration) = {
     (fullClasspath in config, aspectMappings in Aspectj, weave in Aspectj) map {
-      (cp, mappings, woven) => insertInstrumentedJars(cp, mappings)
+      (cp, mappings, woven) => insertInstrumentedClasses(cp, mappings)
     }
   }
 
-  def insertInstrumentedJars(classpath: Classpath, mappings: Seq[Mapping]) = {
+  def insertInstrumentedClasses(classpath: Classpath, mappings: Seq[Mapping]) = {
     classpath map { a => mappings.find(_.in == a.data).map(_.out).map(Attributed.blank).getOrElse(a) }
   }
 }
