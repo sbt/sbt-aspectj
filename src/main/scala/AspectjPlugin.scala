@@ -96,7 +96,9 @@ object AspectjPlugin {
         }).toSet
       }
       val cacheInputs = mappings.flatMap( mapping => {
-        mapping.in +: mapping.aspects
+        val input = mapping.in
+        if (input.isDirectory) (input ***).get ++ mapping.aspects
+        else input +: mapping.aspects
        }).toSet
       cached(cacheInputs).toSeq
     }
