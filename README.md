@@ -14,7 +14,7 @@ Add plugin to `project/plugins.sbt`. For example:
 
     resolvers += Classpaths.typesafeResolver
 
-    addSbtPlugin("com.typesafe.sbtaspectj" % "sbt-aspectj" % "0.5.2")
+    addSbtPlugin("com.typesafe.sbtaspectj" % "sbt-aspectj" % "0.5.3")
 
 
 Sample project
