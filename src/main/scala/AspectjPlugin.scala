@@ -29,7 +29,8 @@ object AspectjPlugin {
   val sources = TaskKey[Seq[File]]("sources")
   val aspectMappings = TaskKey[Seq[Mapping]]("aspect-mappings")
 
-  val weave = TaskKey[Seq[File]]("weave", "Run the AspectJ compiler.")
+  val ajc = TaskKey[Seq[File]]("ajc", "Run the AspectJ compiler.")
+  val weave = TaskKey[Seq[File]]("weave", "Weave with Aspectj.")
 
   lazy val settings: Seq[Setting[_]] = inConfig(Aspectj)(aspectjSettings) ++ dependencySettings
 
@@ -42,8 +43,8 @@ object AspectjPlugin {
     sourceLevel := "-1.5",
     managedClasspath <<= (configuration, classpathTypes, update) map Classpaths.managedJars,
     dependencyClasspath <<= dependencyClasspath in Compile,
-    compiledClasses <<= (compile in Compile, compileInputs in Compile, copyResources in Compile) map {
-      (_, inputs, _) => inputs.config.classesDirectory
+    compiledClasses <<= (compile in Compile, compileInputs in Compile) map {
+      (_, inputs) => inputs.config.classesDirectory
     },
     aspectjClasspath <<= (managedClasspath, dependencyClasspath, compiledClasses) map {
       (mcp, dcp, classes) => Attributed.blank(classes) +: (mcp ++ dcp)
@@ -53,7 +54,10 @@ object AspectjPlugin {
     sources <<= aspectjDirectory map { dir => (dir ** "*.aj").get },
     aspectFilter := { (f, a) => a },
     aspectMappings <<= mapAspects,
-    weave <<= weaveTask)
+    ajc <<= ajcTask,
+    copyResources <<= copyResourcesTask,
+    weave <<= (ajc, copyResources) map { (instrumented, _) => instrumented }
+  )
 
   def dependencySettings = Seq(
     ivyConfigurations += Aspectj,
@@ -70,8 +74,8 @@ object AspectjPlugin {
   }
 
   def mapAspects = (inputs, sources, aspectFilter, outputDirectory) map {
-    (jars, aspects, filter, dir) => {
-      jars map { jar => Mapping(jar, filter(jar, aspects), instrumented(jar, dir)) }
+    (in, aspects, filter, dir) => {
+      in map { input => Mapping(input, filter(input, aspects), instrumented(input, dir)) }
     }
   }
 
@@ -84,34 +88,35 @@ object AspectjPlugin {
     outputDir / outputName
   }
 
-  def weaveTask = (cacheDirectory, aspectMappings, baseOptions, aspectjClasspath, streams) map {
+  def ajcTask = (cacheDirectory, aspectMappings, baseOptions, aspectjClasspath, streams) map {
     (cache, mappings, options, cp, s) => {
-      val cached = FileFunction.cached(cache / "aspectj", FilesInfo.hash) { _ =>
+      val cacheDir = cache / "aspectj"
+      val cached = FileFunction.cached(cacheDir / "ajc-inputs", FilesInfo.hash) { _ =>
         val withPrevious = mappings.zipWithIndex map { case (m, i) => (mappings.take(i), m) }
         (withPrevious map { case (previousMappings, mapping) =>
           val classpath = insertInstrumentedJars(cp, previousMappings)
           val classpathOption = Seq("-classpath", classpath.files.absString)
-          runAjc(mapping.in, mapping.aspects, mapping.out, options ++ classpathOption, s.log)
+          runAjc(mapping.in, mapping.aspects, mapping.out, options ++ classpathOption, cacheDir, s.log)
           mapping.out
         }).toSet
       }
       val cacheInputs = mappings.flatMap( mapping => {
         val input = mapping.in
-        if (input.isDirectory) (input ***).get ++ mapping.aspects
+        if (input.isDirectory) (input ** "*.class").get ++ mapping.aspects
         else input +: mapping.aspects
        }).toSet
       cached(cacheInputs).toSeq
     }
   }
 
-  def runAjc(input: File, aspects: Seq[File], output: File, baseOptions: Seq[String], log: Logger) = {
+  def runAjc(input: File, aspects: Seq[File], output: File, baseOptions: Seq[String], cacheDir: File, log: Logger): Unit = {
     IO.createDirectory(output.getParentFile)
     if (aspects.isEmpty) {
       log.info("No aspects for %s" format input)
       if (input.isDirectory) {
-        log.info("Copying path to %s" format output)
-        output.delete
-        IO.copyDirectory(input, output)
+        log.info("Copying classes to %s" format output)
+        val classes = (input ** "*.class") x rebase(input, output)
+        Sync(cacheDir / "ajc-sync")(classes)
       } else {
         log.info("Copying jar to %s" format output)
         IO.copyFile(input, output, false)
@@ -120,10 +125,6 @@ object AspectjPlugin {
       log.info("Weaving %s with aspects:" format input)
       aspects foreach { f => log.info("  " + f.absolutePath) }
       log.info("to %s" format output)
-      if (input.isDirectory) {
-        val resources = (input ** -"*.class") x rebase(input, output)
-        IO.copy(resources)
-      }
       val ajc = new org.aspectj.tools.ajc.Main
       val options = ajcOptions(input, aspects, output, baseOptions).toArray
       ajc.runMain(options, false)
@@ -135,6 +136,19 @@ object AspectjPlugin {
     Seq("-inpath", in.absolutePath) ++
     { if (in.isDirectory) Seq("-d", out.absolutePath) else Seq("-outjar", out.absolutePath) } ++
     aspects.map(_.absolutePath)
+  }
+
+  def copyResourcesTask = (cacheDirectory, aspectMappings, copyResources in Compile) map {
+    (cache, mappings, resourceMappings) => {
+      val cacheFile = cache / "aspectj" / "resource-sync"
+      val mapped = mappings flatMap { mapping =>
+        if (mapping.in.isDirectory) {
+          resourceMappings map (_._2) x rebase(mapping.in, mapping.out)
+        } else Seq.empty
+      }
+      Sync(cacheFile)(mapped)
+      mapped
+    }
   }
 
   def useInstrumentedJars(config: Configuration) = useInstrumentedClasses(config)
