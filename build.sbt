@@ -1,16 +1,18 @@
 
 sbtPlugin := true
 
-organization := "com.typesafe.sbtaspectj"
+organization := "com.typesafe.sbt"
 
 name := "sbt-aspectj"
 
-version := "0.5.4-SNAPSHOT"
-
-resolvers += "Typesafe Repo" at "http://repo.typesafe.com/typesafe/releases/"
+version := "0.6.0-SNAPSHOT"
 
 libraryDependencies += "org.aspectj" % "aspectjtools" % "1.6.12"
 
 publishMavenStyle := false
 
-publishTo := Option(Classpaths.typesafeResolver)
+publishTo <<= (version) { v =>
+  def scalasbt(repo: String) = ("scalasbt " + repo, "http://scalasbt.artifactoryonline.com/scalasbt/sbt-plugin-" + repo)
+  val (name, repo) = if (v.endsWith("-SNAPSHOT")) scalasbt("snapshots") else scalasbt("releases")
+  Some(Resolver.url(name, url(repo))(Resolver.ivyStylePatterns))
+}

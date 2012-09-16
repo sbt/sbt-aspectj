@@ -1,3 +1,1 @@
-resolvers += Classpaths.typesafeResolver
-
-addSbtPlugin("com.typesafe.sbtaspectj" % "sbt-aspectj" % "0.5.4-SNAPSHOT")
+addSbtPlugin("com.typesafe.sbt" % "sbt-aspectj" % "0.6.0-SNAPSHOT")

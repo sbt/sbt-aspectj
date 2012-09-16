@@ -1,40 +1,43 @@
-package com.typesafe.sbtaspectj
-
-import sbt._
-import Configurations.Compile
-import Keys._
+package com.typesafe.sbt
 
 import java.io.File
+import sbt._
+import sbt.Configurations.Compile
+import sbt.Keys._
 
-object AspectjPlugin {
+object SbtAspectj extends Plugin {
   case class Mapping(in: File, aspects: Seq[File], out: File)
 
   val Aspectj = config("aspectj") hide
 
-  val aspectjVersion = SettingKey[String]("aspectj-version")
-  val aspectjDirectory = SettingKey[File]("aspectj-directory")
-  val outputDirectory = SettingKey[File]("output-directory")
+  object AspectjKeys {
+    val aspectjVersion = SettingKey[String]("aspectj-version")
+    val aspectjDirectory = SettingKey[File]("aspectj-directory")
+    val outputDirectory = SettingKey[File]("output-directory")
 
-  val showWeaveInfo = SettingKey[Boolean]("show-weave-info")
-  val verbose = SettingKey[Boolean]("verbose")
-  val sourceLevel = SettingKey[String]("source-level")
+    val showWeaveInfo = SettingKey[Boolean]("show-weave-info")
+    val verbose = SettingKey[Boolean]("verbose")
+    val sourceLevel = SettingKey[String]("source-level")
 
-  val aspectFilter = SettingKey[(File, Seq[File]) => Seq[File]]("aspect-filter")
+    val aspectFilter = SettingKey[(File, Seq[File]) => Seq[File]]("aspect-filter")
 
-  val compiledClasses = TaskKey[File]("compiled-classes")
-  val aspectjClasspath = TaskKey[Classpath]("aspectj-classpath")
-  val baseOptions = TaskKey[Seq[String]]("base-options")
+    val compiledClasses = TaskKey[File]("compiled-classes")
+    val aspectjClasspath = TaskKey[Classpath]("aspectj-classpath")
+    val baseOptions = TaskKey[Seq[String]]("base-options")
 
-  val inputs = TaskKey[Seq[File]]("inputs")
-  val sources = TaskKey[Seq[File]]("sources")
-  val aspectMappings = TaskKey[Seq[Mapping]]("aspect-mappings")
+    val inputs = TaskKey[Seq[File]]("inputs")
+    val sources = TaskKey[Seq[File]]("sources")
+    val aspectMappings = TaskKey[Seq[Mapping]]("aspect-mappings")
 
-  val ajc = TaskKey[Seq[File]]("ajc", "Run the AspectJ compiler.")
-  val weave = TaskKey[Seq[File]]("weave", "Weave with Aspectj.")
+    val ajc = TaskKey[Seq[File]]("ajc", "Run the AspectJ compiler.")
+    val weave = TaskKey[Seq[File]]("weave", "Weave with Aspectj.")
+  }
 
-  lazy val settings: Seq[Setting[_]] = inConfig(Aspectj)(aspectjSettings) ++ dependencySettings
+  import AspectjKeys._
 
-  def aspectjSettings = Seq(
+  lazy val aspectjSettings: Seq[Setting[_]] = inConfig(Aspectj)(baseAspectjSettings) ++ dependencySettings
+
+  def baseAspectjSettings = Seq(
     aspectjVersion := "1.6.12",
     aspectjDirectory <<= sourceDirectory(_ / "main" / "aspectj"),
     outputDirectory <<= crossTarget / "aspectj",
@@ -63,7 +66,8 @@ object AspectjPlugin {
     ivyConfigurations += Aspectj,
     resolvers += "Typesafe Repo" at "http://repo.typesafe.com/typesafe/releases/",
     libraryDependencies <+= (aspectjVersion in Aspectj)("org.aspectj" % "aspectjtools" % _ % Aspectj.name),
-    libraryDependencies <+= (aspectjVersion in Aspectj)("org.aspectj" % "aspectjrt" % _))
+    libraryDependencies <+= (aspectjVersion in Aspectj)("org.aspectj" % "aspectjrt" % _)
+  )
 
   def ajcBaseOptions = (showWeaveInfo, verbose, sourceLevel) map {
     (info, verbose, level) => {
