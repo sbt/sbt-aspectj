@@ -14,7 +14,7 @@ object SampleBuild extends Build {
     id = "sample",
     base = file("."),
     settings = Defaults.defaultSettings ++ aspectjSettings ++ Seq(
-      organization := "com.typesafe.sbtaspectj",
+      organization := "com.typesafe.sbt.aspectj",
       version := "0.1-SNAPSHOT",
       scalaVersion := "2.9.2",
       resolvers += "Typesafe Repo" at "http://repo.typesafe.com/typesafe/releases/",

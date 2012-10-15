@@ -4,6 +4,7 @@ import java.io.File
 import sbt._
 import sbt.Configurations.Compile
 import sbt.Keys._
+import sbt.Project.Initialize
 
 object SbtAspectj extends Plugin {
   case class Mapping(in: File, aspects: Seq[File], out: File)
@@ -12,25 +13,28 @@ object SbtAspectj extends Plugin {
 
   object AspectjKeys {
     val aspectjVersion = SettingKey[String]("aspectj-version")
-    val aspectjDirectory = SettingKey[File]("aspectj-directory")
-    val outputDirectory = SettingKey[File]("output-directory")
-
     val showWeaveInfo = SettingKey[Boolean]("show-weave-info")
     val verbose = SettingKey[Boolean]("verbose")
     val sourceLevel = SettingKey[String]("source-level")
-
+    val aspectjSource = SettingKey[File]("aspectj-source")
+    val outputDirectory = SettingKey[File]("output-directory")
     val aspectFilter = SettingKey[(File, Seq[File]) => Seq[File]]("aspect-filter")
 
     val compiledClasses = TaskKey[File]("compiled-classes")
     val aspectjClasspath = TaskKey[Classpath]("aspectj-classpath")
     val baseOptions = TaskKey[Seq[String]]("base-options")
-
     val inputs = TaskKey[Seq[File]]("inputs")
-    val sources = TaskKey[Seq[File]]("sources")
     val aspectMappings = TaskKey[Seq[Mapping]]("aspect-mappings")
 
     val ajc = TaskKey[Seq[File]]("ajc", "Run the AspectJ compiler.")
-    val weave = TaskKey[Seq[File]]("weave", "Weave with Aspectj.")
+    val weave = TaskKey[Seq[File]]("weave", "Weave with AspectJ.")
+
+    // load-time weaving support - compiling and including aspects in package-bin
+    val aspectClassesDirectory = SettingKey[File]("aspect-classes-directory")
+    val compileAspects = TaskKey[File]("compile-aspects", "Compile aspects for load-time weaving.")
+    val enableProducts = TaskKey[Boolean]("enableProducts", "Enable or disable compiled aspects in compile products.")
+    val aspectProducts = TaskKey[Seq[File]]("aspect-products", "Optionally compiled aspects (if produce-aspects).")
+    val weaveAgentOptions = TaskKey[Seq[String]]("weave-agent-options", "JVM options for AspectJ java agent.")
   }
 
   import AspectjKeys._
@@ -39,35 +43,50 @@ object SbtAspectj extends Plugin {
 
   def baseAspectjSettings = Seq(
     aspectjVersion := "1.7.1",
-    aspectjDirectory <<= sourceDirectory(_ / "main" / "aspectj"),
-    outputDirectory <<= crossTarget / "aspectj",
     showWeaveInfo := false,
     verbose := false,
     sourceLevel := "-1.5",
+    aspectjSource <<= (sourceDirectory in Compile) / "aspectj",
+    sourceDirectories <<= Seq(aspectjSource).join,
+    outputDirectory <<= crossTarget / "aspectj",
     managedClasspath <<= (configuration, classpathTypes, update) map Classpaths.managedJars,
     dependencyClasspath <<= dependencyClasspath in Compile,
-    compiledClasses <<= (compile in Compile, compileInputs in Compile) map {
-      (_, inputs) => inputs.config.classesDirectory
-    },
-    aspectjClasspath <<= (managedClasspath, dependencyClasspath, compiledClasses) map {
-      (mcp, dcp, classes) => Attributed.blank(classes) +: (mcp ++ dcp)
-    },
+    compiledClasses <<= compileClasses,
+    aspectjClasspath <<= combineClasspaths,
     baseOptions <<= ajcBaseOptions,
     inputs := Seq.empty,
-    sources <<= aspectjDirectory map { dir => (dir ** "*.aj").get },
+    includeFilter := "*.aj",
+    excludeFilter := HiddenFileFilter,
+    sources <<= collectAspects,
     aspectFilter := { (f, a) => a },
     aspectMappings <<= mapAspects,
     ajc <<= ajcTask,
     copyResources <<= copyResourcesTask,
-    weave <<= (ajc, copyResources) map { (instrumented, _) => instrumented }
+    weave <<= (ajc, copyResources) map { (instrumented, _) => instrumented },
+    aspectClassesDirectory <<= outputDirectory / "classes",
+    compileAspects <<= compileAspectsTask,
+    enableProducts := false,
+    aspectProducts <<= compileIfEnabled,
+    products in Compile <<= combineProducts,
+    weaveAgentOptions <<= javaAgentOptions
   )
 
   def dependencySettings = Seq(
     ivyConfigurations += Aspectj,
-    resolvers += "Typesafe Repo" at "http://repo.typesafe.com/typesafe/releases/",
-    libraryDependencies <+= (aspectjVersion in Aspectj)("org.aspectj" % "aspectjtools" % _ % Aspectj.name),
-    libraryDependencies <+= (aspectjVersion in Aspectj)("org.aspectj" % "aspectjrt" % _)
+    libraryDependencies <++= (aspectjVersion in Aspectj) { version => Seq(
+      "org.aspectj" % "aspectjtools" % version % Aspectj.name,
+      "org.aspectj" % "aspectjweaver" % version % Aspectj.name,
+      "org.aspectj" % "aspectjrt" % version
+    )}
   )
+
+  def compileClasses = (compile in Compile, compileInputs in Compile) map {
+    (_, inputs) => inputs.config.classesDirectory
+  }
+
+  def combineClasspaths = (managedClasspath, dependencyClasspath, compiledClasses) map {
+    (mcp, dcp, classes) => Attributed.blank(classes) +: (mcp ++ dcp)
+  }
 
   def ajcBaseOptions = (showWeaveInfo, verbose, sourceLevel) map {
     (info, verbose, level) => {
@@ -75,6 +94,10 @@ object SbtAspectj extends Plugin {
       (if (verbose) Seq("-verbose") else Seq.empty[String]) ++
       Seq(level)
     }
+  }
+
+  def collectAspects = (sourceDirectories, includeFilter, excludeFilter) map {
+    (dirs, include, exclude) => dirs.descendantsExcept(include, exclude).get
   }
 
   def mapAspects = (inputs, sources, aspectFilter, outputDirectory) map {
@@ -166,5 +189,39 @@ object SbtAspectj extends Plugin {
 
   def insertInstrumentedClasses(classpath: Classpath, mappings: Seq[Mapping]) = {
     classpath map { a => mappings.find(_.in == a.data).map(_.out).map(Attributed.blank).getOrElse(a) }
+  }
+
+  def compileAspectsTask = (sources, aspectjClasspath, baseOptions, aspectClassesDirectory, cacheDirectory, streams) map {
+    (aspects, classpath, opts, dir, cacheDir, s) => {
+      val cachedCompile = FileFunction.cached(cacheDir / "ajc-compile", FilesInfo.hash) { _ =>
+        val sourceCount = Util.counted("AspectJ source", "", "s", aspects.length)
+        sourceCount foreach { count => s.log.info("Compiling %s to %s..." format (count, dir)) }
+        val options = ajcCompileOptions(aspects, classpath, opts, dir).toArray
+        val ajc = new org.aspectj.tools.ajc.Main
+        ajc.runMain(options, false)
+        dir.***.get.toSet
+      }
+      val inputs = aspects.toSet
+      cachedCompile(inputs)
+      dir
+    }
+  }
+
+  def ajcCompileOptions(aspects: Seq[File], classpath: Classpath, baseOptions: Seq[String], output: File): Seq[String] = {
+    baseOptions ++
+    Seq("-classpath", classpath.files.absString) ++
+    Seq("-XterminateAfterCompilation", "-outxml") ++
+    Seq("-d", output.absolutePath) ++
+    aspects.map(_.absolutePath)
+  }
+
+  def compileIfEnabled = (enableProducts, compileAspects.task) flatMap {
+    (enable, compile) => if (enable) (compile map { dir => Seq(dir) }) else task { Seq.empty[File] }
+  }
+
+  def combineProducts = (products in Compile, aspectProducts) map { _ ++ _ }
+
+  def javaAgentOptions = update map { report =>
+    report.matching(moduleFilter(organization = "org.aspectj", name = "aspectjweaver")) take 1 map { "-javaagent:" + _ }
   }
 }
