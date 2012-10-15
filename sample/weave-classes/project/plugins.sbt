@@ -1,1 +1,1 @@
-addSbtPlugin("com.typesafe.sbt" % "sbt-aspectj" % "0.7.1-SNAPSHOT")
+addSbtPlugin("com.typesafe.sbt" % "sbt-aspectj" % "0.8.0-SNAPSHOT")
