@@ -1,7 +1,3 @@
-/**
- *  Copyright (C) 2011 Typesafe, Inc <http://typesafe.com>
- */
-
 package sample
 
 class Sample {
