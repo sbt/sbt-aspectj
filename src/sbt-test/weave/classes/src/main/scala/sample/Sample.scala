@@ -1,7 +1,7 @@
 package sample
 
 class Sample {
-  def printSample() = println("sample")
+  def printSample() = println("hello")
 }
 
 object Sample extends App {

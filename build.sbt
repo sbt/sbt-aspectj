@@ -16,3 +16,5 @@ publishTo <<= (version) { v =>
   val (name, repo) = if (v.endsWith("-SNAPSHOT")) scalasbt("snapshots") else scalasbt("releases")
   Some(Resolver.url(name, url(repo))(Resolver.ivyStylePatterns))
 }
+
+ScriptedPlugin.scriptedSettings

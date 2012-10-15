@@ -10,6 +10,6 @@ privileged public aspect ActorWeaveAspect {
     execution(* akka.actor.ScalaActorRef$class.$qmark(..)) &&
     args(scalaActorRef, message, ..)
   {
-    System.out.println("Actor " + scalaActorRef + " asked " + message);
+    System.out.println("Actor asked " + message);
   }
 }
