@@ -31,6 +31,7 @@ object SbtAspectj extends Plugin {
 
     // load-time weaving support - compiling and including aspects in package-bin
     val aspectClassesDirectory = SettingKey[File]("aspect-classes-directory")
+    val outxml = SettingKey[Boolean]("outxml")
     val compileAspects = TaskKey[File]("compile-aspects", "Compile aspects for load-time weaving.")
     val enableProducts = TaskKey[Boolean]("enableProducts", "Enable or disable compiled aspects in compile products.")
     val aspectProducts = TaskKey[Seq[File]]("aspect-products", "Optionally compiled aspects (if produce-aspects).")
@@ -64,6 +65,7 @@ object SbtAspectj extends Plugin {
     copyResources <<= copyResourcesTask,
     weave <<= (ajc, copyResources) map { (instrumented, _) => instrumented },
     aspectClassesDirectory <<= outputDirectory / "classes",
+    outxml := true,
     compileAspects <<= compileAspectsTask,
     enableProducts := false,
     aspectProducts <<= compileIfEnabled,
@@ -191,12 +193,12 @@ object SbtAspectj extends Plugin {
     classpath map { a => mappings.find(_.in == a.data).map(_.out).map(Attributed.blank).getOrElse(a) }
   }
 
-  def compileAspectsTask = (sources, aspectjClasspath, baseOptions, aspectClassesDirectory, cacheDirectory, streams) map {
-    (aspects, classpath, opts, dir, cacheDir, s) => {
+  def compileAspectsTask = (sources, outxml, aspectjClasspath, baseOptions, aspectClassesDirectory, cacheDirectory, streams) map {
+    (aspects, outxml, classpath, opts, dir, cacheDir, s) => {
       val cachedCompile = FileFunction.cached(cacheDir / "ajc-compile", FilesInfo.hash) { _ =>
         val sourceCount = Util.counted("AspectJ source", "", "s", aspects.length)
         sourceCount foreach { count => s.log.info("Compiling %s to %s..." format (count, dir)) }
-        val options = ajcCompileOptions(aspects, classpath, opts, dir).toArray
+        val options = ajcCompileOptions(aspects, outxml, classpath, opts, dir).toArray
         val ajc = new org.aspectj.tools.ajc.Main
         ajc.runMain(options, false)
         dir.***.get.toSet
@@ -207,11 +209,12 @@ object SbtAspectj extends Plugin {
     }
   }
 
-  def ajcCompileOptions(aspects: Seq[File], classpath: Classpath, baseOptions: Seq[String], output: File): Seq[String] = {
+  def ajcCompileOptions(aspects: Seq[File], outxml: Boolean, classpath: Classpath, baseOptions: Seq[String], output: File): Seq[String] = {
     baseOptions ++
+    Seq("-XterminateAfterCompilation") ++
     Seq("-classpath", classpath.files.absString) ++
-    Seq("-XterminateAfterCompilation", "-outxml") ++
     Seq("-d", output.absolutePath) ++
+    (if (outxml) Seq("-outxml") else Seq.empty[String]) ++
     aspects.map(_.absolutePath)
   }
 
