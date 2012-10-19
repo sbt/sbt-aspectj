@@ -1,10 +1,13 @@
 package com.typesafe.sbt
 
-import java.io.File
 import sbt._
 import sbt.Configurations.Compile
 import sbt.Keys._
 import sbt.Project.Initialize
+
+import java.io.File
+import org.aspectj.bridge.{ AbortException, IMessageHandler, IMessage, MessageHandler }
+import org.aspectj.tools.ajc.Main
 
 object SbtAspectj extends Plugin {
   case class Mapping(in: File, aspects: Seq[File], out: File)
@@ -154,9 +157,8 @@ object SbtAspectj extends Plugin {
       log.info("Weaving %s with aspects:" format input)
       aspects foreach { f => log.info("  " + f.absolutePath) }
       log.info("to %s" format output)
-      val ajc = new org.aspectj.tools.ajc.Main
       val options = ajcOptions(input, aspects, output, baseOptions).toArray
-      ajc.runMain(options, false)
+      ajcRunMain(options, log)
     }
   }
 
@@ -180,6 +182,35 @@ object SbtAspectj extends Plugin {
     }
   }
 
+  def ajcRunMain(options: Array[String], log: Logger): Unit = {
+    val ajc = new Main
+    val handler = new MessageHandler
+    val showWeaveInfo = options contains "-showWeaveInfo"
+    val verbose = options contains "-verbose"
+    val logger = new IMessageHandler {
+      var errors = false
+      def handleMessage(message: IMessage): Boolean = {
+        import IMessage._
+        message.getKind match {
+          case WEAVEINFO       => if (showWeaveInfo) log.info(message.toString)
+          case INFO            => if (verbose) log.info(message.toString)
+          case DEBUG | TASKTAG => log.debug(message.toString)
+          case WARNING         => log.warn(message.toString)
+          case ERROR           => log.error(message.toString); errors = true
+          case FAIL | ABORT    => throw new AbortException(message)
+        }
+        true
+      }
+      def isIgnoring(kind: IMessage.Kind) = false
+      def dontIgnore(kind: IMessage.Kind) = ()
+      def ignore(kind: IMessage.Kind) = ()
+    }
+    handler.setInterceptor(logger)
+    ajc.setHolder(handler)
+    ajc.runMain(options, false)
+    if (logger.errors) throw new AbortException("AspectJ failed")
+  }
+
   def useInstrumentedJars(config: Configuration) = useInstrumentedClasses(config)
   def insertInstrumentedJars(classpath: Classpath, mappings: Seq[Mapping]) = insertInstrumentedClasses(classpath, mappings)
 
@@ -199,8 +230,7 @@ object SbtAspectj extends Plugin {
         val sourceCount = Util.counted("AspectJ source", "", "s", aspects.length)
         sourceCount foreach { count => s.log.info("Compiling %s to %s..." format (count, dir)) }
         val options = ajcCompileOptions(aspects, outxml, classpath, opts, dir).toArray
-        val ajc = new org.aspectj.tools.ajc.Main
-        ajc.runMain(options, false)
+        ajcRunMain(options, s.log)
         dir.***.get.toSet
       }
       val inputs = aspects.toSet
