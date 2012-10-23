@@ -38,6 +38,7 @@ object SbtAspectj extends Plugin {
     val compileAspects = TaskKey[File]("compile-aspects", "Compile aspects for load-time weaving.")
     val enableProducts = TaskKey[Boolean]("enableProducts", "Enable or disable compiled aspects in compile products.")
     val aspectProducts = TaskKey[Seq[File]]("aspect-products", "Optionally compiled aspects (if produce-aspects).")
+    val weaveAgentJar = TaskKey[Option[File]]("weave-agent-jar", "Location of AspectJ weaver.")
     val weaveAgentOptions = TaskKey[Seq[String]]("weave-agent-options", "JVM options for AspectJ java agent.")
   }
 
@@ -73,6 +74,7 @@ object SbtAspectj extends Plugin {
     enableProducts := false,
     aspectProducts <<= compileIfEnabled,
     products in Compile <<= combineProducts,
+    weaveAgentJar <<= javaAgent,
     weaveAgentOptions <<= javaAgentOptions
   )
 
@@ -254,7 +256,9 @@ object SbtAspectj extends Plugin {
 
   def combineProducts = (products in Compile, aspectProducts) map { _ ++ _ }
 
-  def javaAgentOptions = update map { report =>
-    report.matching(moduleFilter(organization = "org.aspectj", name = "aspectjweaver")) take 1 map { "-javaagent:" + _ }
+  def javaAgent = update map { report =>
+    report.matching(moduleFilter(organization = "org.aspectj", name = "aspectjweaver")) headOption
   }
+
+  def javaAgentOptions = weaveAgentJar map { weaver => weaver.toSeq map { "-javaagent:" + _ } }
 }
