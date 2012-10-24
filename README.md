@@ -1,7 +1,7 @@
 sbt-aspectj
 ===========
 
-[sbt] plugin for weaving with [aspectj]. This plugin requires sbt 0.12.x.
+[sbt] plugin for weaving with [aspectj]. This plugin requires sbt 0.12.
 
 
 Add plugin
@@ -9,7 +9,7 @@ Add plugin
 
 Add plugin to `project/plugins.sbt`. For example:
 
-    addSbtPlugin("com.typesafe.sbt" % "sbt-aspectj" % "0.7.0")
+    addSbtPlugin("com.typesafe.sbt" % "sbt-aspectj" % "0.8.0")
 
 
 Sample projects
