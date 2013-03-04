@@ -47,7 +47,7 @@ object SbtAspectj extends Plugin {
   lazy val aspectjSettings: Seq[Setting[_]] = inConfig(Aspectj)(baseAspectjSettings) ++ dependencySettings
 
   def baseAspectjSettings = Seq(
-    aspectjVersion := "1.7.1",
+    aspectjVersion := "1.7.2",
     showWeaveInfo := false,
     verbose := false,
     sourceLevel := "-1.5",
