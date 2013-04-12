@@ -12,7 +12,7 @@ object SampleBuild extends Build {
     settings = Defaults.defaultSettings ++ aspectjSettings ++ Seq(
       organization := "com.typesafe.sbt.aspectj",
       version := "0.1-SNAPSHOT",
-      scalaVersion := "2.9.2",
+      scalaVersion := "2.10.1",
       inputs in Aspectj <+= compiledClasses in Aspectj,
       products in Compile <<= weave in Aspectj,
       products in Runtime <<= products in Compile
