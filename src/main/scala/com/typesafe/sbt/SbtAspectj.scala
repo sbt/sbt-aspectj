@@ -10,7 +10,8 @@ import org.aspectj.bridge.{ AbortException, IMessageHandler, IMessage, MessageHa
 import org.aspectj.tools.ajc.Main
 
 object SbtAspectj extends Plugin {
-  case class Mapping(in: File, aspects: Seq[File], out: File)
+  case class Aspect(file: File, binary: Boolean)
+  case class Mapping(in: File, aspects: Seq[Aspect], out: File)
 
   val Aspectj = config("aspectj") hide
 
@@ -21,12 +22,14 @@ object SbtAspectj extends Plugin {
     val sourceLevel = SettingKey[String]("source-level", "The AspectJ source level option.")
     val aspectjSource = SettingKey[File]("aspectj-source", "Source directory for aspects.")
     val outputDirectory = SettingKey[File]("output-directory", "Output directory for AspectJ instrumentation.")
-    val aspectFilter = SettingKey[(File, Seq[File]) => Seq[File]]("aspect-filter", "Filter for aspects. Used to create aspect mappings.")
+    val aspectFilter = SettingKey[(File, Seq[Aspect]) => Seq[Aspect]]("aspect-filter", "Filter for aspects. Used to create aspect mappings.")
 
     val compiledClasses = TaskKey[File]("compiled-classes", "The compile classes directory (after compile).")
     val aspectjClasspath = TaskKey[Classpath]("aspectj-classpath", "The classpath used for running AspectJ.")
     val baseOptions = TaskKey[Seq[String]]("base-options", "The showWeaveInfo, verbose, and sourceLevel settings as options.")
     val inputs = TaskKey[Seq[File]]("inputs", "The jars or classes directories to weave.")
+    val binaryAspects = TaskKey[Seq[File]]("binary-aspects", "Binary aspects passed to the -aspectpath AspectJ option.")
+    val aspects = TaskKey[Seq[Aspect]]("aspects", "All aspects, both source and binary.")
     val aspectMappings = TaskKey[Seq[Mapping]]("aspect-mappings", "Mappings from inputs, through aspects, to outputs.")
 
     val ajc = TaskKey[Seq[File]]("ajc", "Run the AspectJ compiler.")
@@ -62,7 +65,9 @@ object SbtAspectj extends Plugin {
     inputs := Seq.empty,
     includeFilter := "*.aj",
     excludeFilter := HiddenFileFilter,
-    sources <<= collectAspects,
+    sources <<= collectAspectSources,
+    binaryAspects := Seq.empty,
+    aspects <<= collectAspects,
     aspectFilter := { (f, a) => a },
     aspectMappings <<= mapAspects,
     ajc <<= ajcTask,
@@ -103,11 +108,15 @@ object SbtAspectj extends Plugin {
     }
   }
 
-  def collectAspects = (sourceDirectories, includeFilter, excludeFilter) map {
+  def collectAspectSources = (sourceDirectories, includeFilter, excludeFilter) map {
     (dirs, include, exclude) => dirs.descendantsExcept(include, exclude).get
   }
 
-  def mapAspects = (inputs, sources, aspectFilter, outputDirectory) map {
+  def collectAspects = (sources, binaryAspects) map {
+    (s, b) => (s map { Aspect(_, binary = false) }) ++ (b map { Aspect(_, binary = true) })
+  }
+
+  def mapAspects = (inputs, aspects, aspectFilter, outputDirectory) map {
     (in, aspects, filter, dir) => {
       in map { input => Mapping(input, filter(input, aspects), instrumented(input, dir)) }
     }
@@ -123,27 +132,29 @@ object SbtAspectj extends Plugin {
   }
 
   def ajcTask = (cacheDirectory, aspectMappings, baseOptions, aspectjClasspath, streams) map {
-    (cache, mappings, options, cp, s) => {
+    (cache, mappings, baseOpts, cp, s) => {
       val cacheDir = cache / "aspectj"
       val cached = FileFunction.cached(cacheDir / "ajc-inputs", FilesInfo.hash) { _ =>
         val withPrevious = mappings.zipWithIndex map { case (m, i) => (mappings.take(i), m) }
         (withPrevious map { case (previousMappings, mapping) =>
           val classpath = insertInstrumentedJars(cp, previousMappings)
-          val classpathOption = Seq("-classpath", classpath.files.absString)
-          runAjc(mapping.in, mapping.aspects, mapping.out, options ++ classpathOption, cacheDir, s.log)
+          val classpathOpts = Seq("-classpath", classpath.files.absString)
+          val options = baseOpts ++ classpathOpts
+          runAjc(mapping.in, mapping.aspects, mapping.out, options, cacheDir, s.log)
           mapping.out
         }).toSet
       }
       val cacheInputs = mappings.flatMap( mapping => {
         val input = mapping.in
-        if (input.isDirectory) (input ** "*.class").get ++ mapping.aspects
-        else input +: mapping.aspects
+        val aspects = mapping.aspects.map(_.file)
+        if (input.isDirectory) (input ** "*.class").get ++ aspects
+        else input +: aspects
        }).toSet
       cached(cacheInputs).toSeq
     }
   }
 
-  def runAjc(input: File, aspects: Seq[File], output: File, baseOptions: Seq[String], cacheDir: File, log: Logger): Unit = {
+  def runAjc(input: File, aspects: Seq[Aspect], output: File, baseOptions: Seq[String], cacheDir: File, log: Logger): Unit = {
     IO.createDirectory(output.getParentFile)
     if (aspects.isEmpty) {
       log.info("No aspects for %s" format input)
@@ -157,18 +168,20 @@ object SbtAspectj extends Plugin {
       }
     } else {
       log.info("Weaving %s with aspects:" format input)
-      aspects foreach { f => log.info("  " + f.absolutePath) }
+      aspects foreach { a => log.info("  " + a.file.absolutePath) }
       log.info("to %s" format output)
       val options = ajcOptions(input, aspects, output, baseOptions).toArray
       ajcRunMain(options, log)
     }
   }
 
-  def ajcOptions(in: File, aspects: Seq[File], out: File, baseOptions: Seq[String]): Seq[String] = {
+  def ajcOptions(in: File, aspects: Seq[Aspect], out: File, baseOptions: Seq[String]): Seq[String] = {
+    val (binaries, sources) = aspects partition (_.binary)
     baseOptions ++
     Seq("-inpath", in.absolutePath) ++
+    { if (binaries.nonEmpty) Seq("-aspectpath", binaries.map(_.file).absString) else Seq.empty } ++
     { if (in.isDirectory) Seq("-d", out.absolutePath) else Seq("-outjar", out.absolutePath) } ++
-    aspects.map(_.absolutePath)
+    sources.map(_.file.absolutePath)
   }
 
   def copyResourcesTask = (cacheDirectory, aspectMappings, copyResources in Compile) map {
@@ -185,6 +198,8 @@ object SbtAspectj extends Plugin {
   }
 
   def ajcRunMain(options: Array[String], log: Logger): Unit = {
+    log.debug("Running AspectJ compiler with:")
+    log.debug("ajc " + options.mkString(" "))
     val ajc = new Main
     val handler = new MessageHandler
     val showWeaveInfo = options contains "-showWeaveInfo"
