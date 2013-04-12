@@ -15,19 +15,19 @@ object SbtAspectj extends Plugin {
   val Aspectj = config("aspectj") hide
 
   object AspectjKeys {
-    val aspectjVersion = SettingKey[String]("aspectj-version")
-    val showWeaveInfo = SettingKey[Boolean]("show-weave-info")
-    val verbose = SettingKey[Boolean]("verbose")
-    val sourceLevel = SettingKey[String]("source-level")
-    val aspectjSource = SettingKey[File]("aspectj-source")
-    val outputDirectory = SettingKey[File]("output-directory")
-    val aspectFilter = SettingKey[(File, Seq[File]) => Seq[File]]("aspect-filter")
+    val aspectjVersion = SettingKey[String]("aspectj-version", "AspectJ version to use.")
+    val showWeaveInfo = SettingKey[Boolean]("show-weave-info", "Enable the -showWeaveInfo AspectJ option.")
+    val verbose = SettingKey[Boolean]("verbose", "Enable the -verbose AspectJ option.")
+    val sourceLevel = SettingKey[String]("source-level", "The AspectJ source level option.")
+    val aspectjSource = SettingKey[File]("aspectj-source", "Source directory for aspects.")
+    val outputDirectory = SettingKey[File]("output-directory", "Output directory for AspectJ instrumentation.")
+    val aspectFilter = SettingKey[(File, Seq[File]) => Seq[File]]("aspect-filter", "Filter for aspects. Used to create aspect mappings.")
 
-    val compiledClasses = TaskKey[File]("compiled-classes")
-    val aspectjClasspath = TaskKey[Classpath]("aspectj-classpath")
-    val baseOptions = TaskKey[Seq[String]]("base-options")
-    val inputs = TaskKey[Seq[File]]("inputs")
-    val aspectMappings = TaskKey[Seq[Mapping]]("aspect-mappings")
+    val compiledClasses = TaskKey[File]("compiled-classes", "The compile classes directory (after compile).")
+    val aspectjClasspath = TaskKey[Classpath]("aspectj-classpath", "The classpath used for running AspectJ.")
+    val baseOptions = TaskKey[Seq[String]]("base-options", "The showWeaveInfo, verbose, and sourceLevel settings as options.")
+    val inputs = TaskKey[Seq[File]]("inputs", "The jars or classes directories to weave.")
+    val aspectMappings = TaskKey[Seq[Mapping]]("aspect-mappings", "Mappings from inputs, through aspects, to outputs.")
 
     val ajc = TaskKey[Seq[File]]("ajc", "Run the AspectJ compiler.")
     val weave = TaskKey[Seq[File]]("weave", "Weave with AspectJ.")
