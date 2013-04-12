@@ -1,17 +1,24 @@
 package sample
 
 import akka.actor._
+import akka.pattern.ask
+import akka.util.Timeout
+import scala.concurrent.Await
+import scala.concurrent.duration._
 
 class SampleActor extends Actor {
   def receive = {
-    case message: String => self.reply("hello " + message)
+    case message: String => sender ! ("hello " + message)
   }
 }
 
 object Sample extends App {
-  val actor = Actor.actorOf[SampleActor].start
+  val system = ActorSystem("sample")
+  val actor = system.actorOf(Props[SampleActor])
 
-  println((actor ? "world").as[String].get)
+  implicit val timeout = Timeout(3.seconds)
+  val result = Await.result(actor ? "world", timeout.duration)
+  println(result)
 
-  actor.stop
+  system.shutdown()
 }
