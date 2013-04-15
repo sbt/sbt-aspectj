@@ -156,23 +156,11 @@ object SbtAspectj extends Plugin {
 
   def runAjc(input: File, aspects: Seq[Aspect], output: File, baseOptions: Seq[String], cacheDir: File, log: Logger): Unit = {
     IO.createDirectory(output.getParentFile)
-    if (aspects.isEmpty) {
-      log.info("No aspects for %s" format input)
-      if (input.isDirectory) {
-        log.info("Copying classes to %s" format output)
-        val classes = (input ** "*.class") x rebase(input, output)
-        Sync(cacheDir / "ajc-sync")(classes)
-      } else {
-        log.info("Copying jar to %s" format output)
-        IO.copyFile(input, output, false)
-      }
-    } else {
-      log.info("Weaving %s with aspects:" format input)
-      aspects foreach { a => log.info("  " + a.file.absolutePath) }
-      log.info("to %s" format output)
-      val options = ajcOptions(input, aspects, output, baseOptions).toArray
-      ajcRunMain(options, log)
-    }
+    log.info("Weaving %s with aspects" format input)
+    aspects foreach { a => log.info("  " + a.file.absolutePath) }
+    log.info("to %s" format output)
+    val options = ajcOptions(input, aspects, output, baseOptions).toArray
+    ajcRunMain(options, log)
   }
 
   def ajcOptions(in: File, aspects: Seq[Aspect], out: File, baseOptions: Seq[String]): Seq[String] = {
