@@ -19,11 +19,8 @@ object SbtAspectj extends Plugin {
     val verbose = SettingKey[Boolean]("verbose", "Enable the -verbose AspectJ option.")
     val sourceLevel = SettingKey[String]("source-level", "The AspectJ source level option.")
     val outXml = SettingKey[Boolean]("out-xml", "Enable the -outxml AspectJ option.")
-    val outJar = SettingKey[Boolean]("out-jar", "Output a jar file rather than directory of classes.")
 
     val aspectjSource = SettingKey[File]("aspectj-source", "Source directory for aspects.")
-    val outputDirectory = SettingKey[File]("output-directory", "Output directory for AspectJ instrumentation.")
-
     val inputs = TaskKey[Seq[File]]("inputs", "Jars or class directories to weave. Passed to the -inpath AspectJ option.")
     val binaries = TaskKey[Seq[File]]("binaries", "Binary aspects passed to the -aspectpath AspectJ option.")
     val output = TaskKey[File]("output", "The output class directory or jar file for AspectJ.")
@@ -54,16 +51,14 @@ object SbtAspectj extends Plugin {
     verbose := false,
     sourceLevel := "-1.5",
     outXml := true,
-    outJar := false,
     aspectjSource <<= (sourceDirectory in Compile) / "aspectj",
     sourceDirectories <<= Seq(aspectjSource).join,
     includeFilter := "*.aj",
     excludeFilter := HiddenFileFilter,
     sources <<= collectAspectSources,
-    outputDirectory <<= crossTarget / "aspectj",
+    classDirectory <<= crossTarget { _ / "aspectj" / "classes" },
     inputs := Seq.empty,
     binaries := Seq.empty,
-    output <<= selectOutput,
     managedClasspath <<= (configuration, classpathTypes, update) map Classpaths.managedJars,
     dependencyClasspath <<= dependencyClasspath in Compile,
     compiledClasses <<= compileClasses,
@@ -73,7 +68,6 @@ object SbtAspectj extends Plugin {
     copyResources <<= copyResourcesTask,
     weave <<= (ajc, copyResources) map { (instrumented, _) => instrumented },
     products <<= weave map { instrumented => Seq(instrumented) },
-    aspectClassesDirectory <<= outputDirectory / "classes",
     compileAspects <<= compileAspectsTask,
     enableProducts := false,
     aspectProducts <<= compileIfEnabled,
@@ -111,16 +105,12 @@ object SbtAspectj extends Plugin {
     (dirs, include, exclude) => dirs.descendantsExcept(include, exclude).get
   }
 
-  def selectOutput = (outputDirectory, outJar) map {
-    (dir, jar) => if (jar) dir / "instrumented.jar" else dir / "classes"
-  }
-
-  def ajcTask = (cacheDirectory, inputs, sources, binaries, output, outJar, baseOptions, aspectjClasspath, streams) map {
-    (cache, inputs, sources, binaries, output, outJar, baseOpts, cp, s) => {
+  def ajcTask = (cacheDirectory, inputs, sources, binaries, classDirectory, baseOptions, aspectjClasspath, streams) map {
+    (cache, inputs, sources, binaries, output, baseOpts, cp, s) => {
       val cacheDir = cache / "aspectj"
       val cached = FileFunction.cached(cacheDir / "ajc-inputs", FilesInfo.hash) { _ =>
         val options = baseOpts ++ Seq("-classpath", cp.files.absString)
-        runAjc(inputs, sources, binaries, output, outJar, options, cacheDir, s.log)
+        runAjc(inputs, sources, binaries, output, options, cacheDir, s.log)
         Set(output)
       }
       val allInputs = inputs flatMap { i => if (i.isDirectory) (i ** "*.class").get else Seq(i) }
@@ -130,21 +120,21 @@ object SbtAspectj extends Plugin {
     }
   }
 
-  def runAjc(inputs: Seq[File], sources: Seq[File], binaries: Seq[File], output: File, outJar: Boolean, baseOptions: Seq[String], cacheDir: File, log: Logger): Unit = {
+  def runAjc(inputs: Seq[File], sources: Seq[File], binaries: Seq[File], output: File, baseOptions: Seq[String], cacheDir: File, log: Logger): Unit = {
     IO.createDirectory(output.getParentFile)
-    val options = ajcOptions(inputs, sources, binaries, output, outJar, baseOptions).toArray
+    val options = ajcOptions(inputs, sources, binaries, output, baseOptions).toArray
     ajcRunMain(options, log)
   }
 
-  def ajcOptions(inputs: Seq[File], sources: Seq[File], binaries: Seq[File], output: File, outJar: Boolean, baseOptions: Seq[String]): Seq[String] = {
+  def ajcOptions(inputs: Seq[File], sources: Seq[File], binaries: Seq[File], output: File, baseOptions: Seq[String]): Seq[String] = {
     baseOptions ++
     { if (inputs.nonEmpty) Seq("-inpath", inputs.absString) else Seq.empty } ++
     { if (binaries.nonEmpty) Seq("-aspectpath", binaries.absString) else Seq.empty } ++
-    { if (outJar) Seq("-outjar", output.absolutePath) else Seq("-d", output.absolutePath) } ++
+    Seq("-d", output.absolutePath) ++
     sources.map(_.absolutePath)
   }
 
-  def copyResourcesTask = (cacheDirectory, inputs, classDirectory in Compile, copyResources in Compile, output) map {
+  def copyResourcesTask = (cacheDirectory, inputs, classDirectory in Compile, copyResources in Compile, classDirectory) map {
     (cache, inputs, classes, mappings, output) => {
       val cacheFile = cache / "aspectj" / "resource-sync"
       val mapped = if (inputs contains classes) { mappings map (_._2) x rebase(classes, output) } else Seq.empty
@@ -194,7 +184,7 @@ object SbtAspectj extends Plugin {
     classpath map { a => if (inputs contains a.data) Attributed.blank(output) else a }
   }
 
-  def compileAspectsTask = (sources, outXml, aspectjClasspath, baseOptions, aspectClassesDirectory, cacheDirectory, streams) map {
+  def compileAspectsTask = (sources, outXml, aspectjClasspath, baseOptions, classDirectory, cacheDirectory, streams) map {
     (aspects, outXml, classpath, opts, dir, cacheDir, s) => {
       val cachedCompile = FileFunction.cached(cacheDir / "ajc-compile", FilesInfo.hash) { _ =>
         val sourceCount = Util.counted("AspectJ source", "", "s", aspects.length)
