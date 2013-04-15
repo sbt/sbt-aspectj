@@ -14,7 +14,7 @@ object SampleBuild extends Build {
       version := "0.1-SNAPSHOT",
       scalaVersion := "2.10.1",
       inputs in Aspectj <+= compiledClasses in Aspectj,
-      products in Compile <<= weave in Aspectj,
+      products in Compile <<= products in Aspectj,
       products in Runtime <<= products in Compile
     )
   )

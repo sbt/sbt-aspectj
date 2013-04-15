@@ -21,26 +21,19 @@ There are [runnable sample projects][samples] included as sbt scripted tests.
 Example settings
 ----------------
 
-Set the aspectj inputs, the jars which should be instrumented. This is an
-ordered sequence of jars where instrumentation can be chained.
+Set the aspectj inputs:
 
-    inputs in Aspectj <<= update map { report =>
-      report.matching(moduleFilter(organization = "se.scalablesolutions.akka", name = "akka-actor" | "akka-remote")).sortBy(_.name)
-    }
+```scala
+inputs in Aspectj <<= update map { report =>
+  report.matching(moduleFilter(organization = "com.typesafe.akka", name = "akka-actor*"))
+}
+```
 
-Set the aspect filter, to map jars to aspects:
+Replace the original jars in the test classpath with the instrumented classes:
 
-    aspectFilter in Aspectj := {
-      (jar, aspects) => {
-        if (jar.name.contains("akka-actor")) aspects filter (_.name.startsWith("Actor"))
-        else if (jar.name.contains("akka-remote")) aspects filter (_.name.startsWith("Remote"))
-        else Seq.empty[File]
-      }
-    }
-
-Replace the original jars in the test classpath with the instrumented jars:
-
-    fullClasspath in Test <<= SbtAspectj.useInstrumentedJars(Test)
+```scala
+fullClasspath in Test <<= SbtAspectj.useInstrumentedClasses(Test)
+```
 
 
 Weave

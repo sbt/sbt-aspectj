@@ -2,7 +2,7 @@ package sample
 
 import sbt._
 import sbt.Keys._
-import com.typesafe.sbt.SbtAspectj.{ Aspectj, aspectjSettings, useInstrumentedJars }
+import com.typesafe.sbt.SbtAspectj.{ Aspectj, aspectjSettings, useInstrumentedClasses }
 import com.typesafe.sbt.SbtAspectj.AspectjKeys.inputs
 
 object SampleBuild extends Build {
@@ -17,7 +17,7 @@ object SampleBuild extends Build {
       inputs in Aspectj <<= update map { report =>
         report.matching(moduleFilter(organization = "com.typesafe.akka", name = "akka-actor*"))
       },
-      fullClasspath in Runtime <<= useInstrumentedJars(Runtime)
+      fullClasspath in Runtime <<= useInstrumentedClasses(Runtime)
     )
   )
 }
