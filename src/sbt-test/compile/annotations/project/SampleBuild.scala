@@ -3,7 +3,7 @@ package sample
 import sbt._
 import sbt.Keys._
 import com.typesafe.sbt.SbtAspectj.{ Aspectj, aspectjSettings }
-import com.typesafe.sbt.SbtAspectj.AspectjKeys.{ binaries, compiledClasses, compileOnly, inputs, lintProperties }
+import com.typesafe.sbt.SbtAspectj.AspectjKeys.{ binaries, compiledClasses, inputs, lintProperties }
 
 object SampleBuild extends Build {
   lazy val buildSettings = Defaults.defaultSettings ++ Seq(
@@ -12,29 +12,40 @@ object SampleBuild extends Build {
     scalaVersion := "2.10.1"
   )
 
-  lazy val precompiled = Project(
-    "precompiled",
+  lazy val sample = Project(
+    "sample",
     file("."),
     settings = buildSettings,
-    aggregate = Seq(tracer, sample)
+    aggregate = Seq(tracer, instrumented)
   )
 
+  // precompiled annotation-based aspects
   lazy val tracer = Project(
     "tracer",
     file("tracer"),
     settings = buildSettings ++ aspectjSettings ++ Seq(
-      compileOnly in Aspectj := true,
+      // input compiled scala classes
+      inputs in Aspectj <+= compiledClasses in Aspectj,
+
+      // ignore warnings
       lintProperties in Aspectj += "invalidAbsoluteTypeName = ignore",
-      products in Compile <++= products in Aspectj
+      lintProperties in Aspectj += "adviceDidNotMatch = ignore",
+
+      // replace regular products with compiled aspects
+      products in Compile <<= products in Aspectj
     )
   )
 
-  lazy val sample = Project(
-    "sample",
-    file("sample"),
+  // test that the instrumentation works
+  lazy val instrumented = Project(
+    "instrumented",
+    file("instrumented"),
     dependencies = Seq(tracer),
     settings = buildSettings ++ aspectjSettings ++ Seq(
-      binaries in Aspectj <++= products in Aspectj in tracer,
+      // add the compiled aspects from tracer
+      binaries in Aspectj <++= products in Compile in tracer,
+
+      // weave this project's classes
       inputs in Aspectj <+= compiledClasses in Aspectj,
       products in Compile <<= products in Aspectj,
       products in Runtime <<= products in Compile
