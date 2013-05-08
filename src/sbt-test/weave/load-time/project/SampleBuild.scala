@@ -3,7 +3,7 @@ package sample
 import sbt._
 import sbt.Keys._
 import com.typesafe.sbt.SbtAspectj.{ Aspectj, aspectjSettings }
-import com.typesafe.sbt.SbtAspectj.AspectjKeys.{ enableProducts, weaveAgentOptions }
+import com.typesafe.sbt.SbtAspectj.AspectjKeys.{ compileOnly, weaverOptions }
 
 object SampleBuild extends Build {
   lazy val buildSettings = Defaults.defaultSettings ++ Seq(
@@ -29,8 +29,9 @@ object SampleBuild extends Build {
     "tracer",
     file("tracer"),
     settings = buildSettings ++ aspectjSettings ++ Seq(
-      enableProducts in Aspectj := true,
-      javaOptions in run in Test <++= weaveAgentOptions in Aspectj,
+      compileOnly in Aspectj := true,
+      products in Compile <++= products in Aspectj,
+      javaOptions in run in Test <++= weaverOptions in Aspectj,
       fork in run in Test := true
     ),
     dependencies = Seq(sample)
