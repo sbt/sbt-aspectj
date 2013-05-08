@@ -63,7 +63,7 @@ object SbtAspectj extends Plugin {
     showWeaveInfo := false,
     verbose := false,
     compileOnly := false,
-    outXml := true,
+    outXml <<= compileOnly,
     sourceLevel := "-1.5",
     lintProperties := Seq.empty,
     lintPropertiesFile <<= writeLintProperties,
