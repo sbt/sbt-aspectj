@@ -15,7 +15,8 @@ object SbtAspectj extends Plugin {
     verbose: Boolean,
     compileOnly: Boolean,
     outXml: Boolean,
-    sourceLevel: String
+    sourceLevel: String,
+    extraOptions: Seq[String]
   )
 
   val Aspectj = config("aspectj") hide
@@ -28,6 +29,7 @@ object SbtAspectj extends Plugin {
     val compileOnly = SettingKey[Boolean]("compile-only", "The AspectJ -XterminateAfterCompilation option.")
     val outXml = SettingKey[Boolean]("out-xml", "Enable the -outxml AspectJ option.")
     val sourceLevel = SettingKey[String]("source-level", "The AspectJ source level option.")
+    val extraOptions = TaskKey[Seq[String]]("extra-options", "Extra AspectJ options (which don't have provided sbt settings).")
     val aspectjOptions = TaskKey[AspectjOptions]("aspectj-options", "Configurable AspectJ options.")
 
     val aspectjSource = SettingKey[File]("aspectj-source", "Source directory for aspects.")
@@ -35,7 +37,6 @@ object SbtAspectj extends Plugin {
     val binaries = TaskKey[Seq[File]]("binaries", "Binary aspects passed to the -aspectpath AspectJ option.")
     val output = TaskKey[File]("output", "The output class directory or jar file for AspectJ.")
     val aspectjClasspath = TaskKey[Classpath]("aspectj-classpath", "The classpath used for running AspectJ.")
-    val baseOptions = TaskKey[Seq[String]]("base-options", "The showWeaveInfo, verbose, and sourceLevel settings as options.")
 
     val compiledClasses = TaskKey[File]("compiled-classes", "The compile classes directory (after compile).")
 
@@ -58,7 +59,8 @@ object SbtAspectj extends Plugin {
     compileOnly := false,
     outXml := true,
     sourceLevel := "-1.5",
-    aspectjOptions <<= (showWeaveInfo, verbose, compileOnly, outXml, sourceLevel) map AspectjOptions,
+    extraOptions := Seq.empty,
+    aspectjOptions <<= (showWeaveInfo, verbose, compileOnly, outXml, sourceLevel, extraOptions) map AspectjOptions,
     aspectjSource <<= (sourceDirectory in Compile) / "aspectj",
     sourceDirectories <<= Seq(aspectjSource).join,
     includeFilter := "*.aj",
@@ -132,6 +134,7 @@ object SbtAspectj extends Plugin {
       pathOption("-aspectpath", binaries) ++
       pathOption("-classpath", classpath) ++
       fileOption("-d", output) ++
+      options.extraOptions ++
       sources.map(_.absolutePath)
     }
 
