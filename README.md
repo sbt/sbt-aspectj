@@ -65,7 +65,7 @@ This code is open source software licensed under the [Apache 2.0 License]
 
 [sbt]: https://github.com/harrah/xsbt
 [aspectj]: http://www.eclipse.org/aspectj
-[samples]: https://github.com/sbt/sbt-aspectj/tree/master/src/sbt-test
+[samples]: https://github.com/sbt/sbt-aspectj/tree/v0.8.1/src/sbt-test
 [email]: http://groups.google.com/group/simple-build-tool
 [cla]: http://www.typesafe.com/contribute/cla
 [apache]: http://www.apache.org/licenses/LICENSE-2.0.html
