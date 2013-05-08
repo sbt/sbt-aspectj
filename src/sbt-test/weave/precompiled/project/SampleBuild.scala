@@ -3,7 +3,7 @@ package sample
 import sbt._
 import sbt.Keys._
 import com.typesafe.sbt.SbtAspectj.{ Aspectj, aspectjSettings }
-import com.typesafe.sbt.SbtAspectj.AspectjKeys.{ binaries, compiledClasses, compileOnly, inputs }
+import com.typesafe.sbt.SbtAspectj.AspectjKeys.{ binaries, compiledClasses, compileOnly, inputs, lintProperties }
 
 object SampleBuild extends Build {
   lazy val buildSettings = Defaults.defaultSettings ++ Seq(
@@ -24,6 +24,7 @@ object SampleBuild extends Build {
     file("tracer"),
     settings = buildSettings ++ aspectjSettings ++ Seq(
       compileOnly in Aspectj := true,
+      lintProperties in Aspectj += "invalidAbsoluteTypeName = ignore",
       products in Compile <++= products in Aspectj
     )
   )

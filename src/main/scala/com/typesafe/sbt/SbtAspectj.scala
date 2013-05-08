@@ -16,6 +16,7 @@ object SbtAspectj extends Plugin {
     compileOnly: Boolean,
     outXml: Boolean,
     sourceLevel: String,
+    lintProperties: Option[File],
     extraOptions: Seq[String]
   )
 
@@ -24,11 +25,15 @@ object SbtAspectj extends Plugin {
   object AspectjKeys {
     val aspectjVersion = SettingKey[String]("aspectj-version", "AspectJ version to use.")
 
+    val aspectjDirectory = SettingKey[File]("aspectj-directory", "Target directory for AspectJ.")
+
     val showWeaveInfo = SettingKey[Boolean]("show-weave-info", "Enable the -showWeaveInfo AspectJ option.")
     val verbose = SettingKey[Boolean]("verbose", "Enable the -verbose AspectJ option.")
     val compileOnly = SettingKey[Boolean]("compile-only", "The AspectJ -XterminateAfterCompilation option.")
     val outXml = SettingKey[Boolean]("out-xml", "Enable the -outxml AspectJ option.")
     val sourceLevel = SettingKey[String]("source-level", "The AspectJ source level option.")
+    val lintProperties = SettingKey[Seq[String]]("lint-properties", "AspectJ -Xlint properties.")
+    val lintPropertiesFile = TaskKey[Option[File]]("lint-properties-file", "Write any -Xlint properties to a file.")
     val extraOptions = TaskKey[Seq[String]]("extra-options", "Extra AspectJ options (which don't have provided sbt settings).")
     val aspectjOptions = TaskKey[AspectjOptions]("aspectj-options", "Configurable AspectJ options.")
 
@@ -54,19 +59,22 @@ object SbtAspectj extends Plugin {
 
   def defaultAspectjSettings = Seq(
     aspectjVersion := "1.7.2",
+    aspectjDirectory <<= crossTarget / "aspectj",
     showWeaveInfo := false,
     verbose := false,
     compileOnly := false,
     outXml := true,
     sourceLevel := "-1.5",
+    lintProperties := Seq.empty,
+    lintPropertiesFile <<= writeLintProperties,
     extraOptions := Seq.empty,
-    aspectjOptions <<= (showWeaveInfo, verbose, compileOnly, outXml, sourceLevel, extraOptions) map AspectjOptions,
+    aspectjOptions <<= (showWeaveInfo, verbose, compileOnly, outXml, sourceLevel, lintPropertiesFile, extraOptions) map AspectjOptions,
     aspectjSource <<= (sourceDirectory in Compile) / "aspectj",
     sourceDirectories <<= Seq(aspectjSource).join,
     includeFilter := "*.aj",
     excludeFilter := HiddenFileFilter,
     sources <<= collectAspectSources,
-    classDirectory <<= crossTarget { _ / "aspectj" / "classes" },
+    classDirectory <<= aspectjDirectory / "classes",
     inputs := Seq.empty,
     binaries := Seq.empty,
     managedClasspath <<= (configuration, classpathTypes, update) map Classpaths.managedJars,
@@ -91,6 +99,14 @@ object SbtAspectj extends Plugin {
   )
 
   object Ajc {
+    def writeLintProperties = (lintProperties, aspectjDirectory) map { (props, dir) =>
+      if (props.nonEmpty) {
+        val file = dir / "lint.properties"
+        IO.writeLines(file, props)
+        Some(file)
+      } else None
+    }
+
     def compileClasses = (compile in Compile, compileInputs in Compile) map {
       (_, inputs) => inputs.config.classesDirectory
     }
@@ -130,6 +146,7 @@ object SbtAspectj extends Plugin {
       flagOption("-verbose", options.verbose) ++
       flagOption("-XterminateAfterCompilation", options.compileOnly) ++
       flagOption("-outxml", options.outXml) ++
+      fileOption("-Xlintfile", options.lintProperties) ++
       pathOption("-inpath", inputs) ++
       pathOption("-aspectpath", binaries) ++
       pathOption("-classpath", classpath) ++
@@ -148,6 +165,10 @@ object SbtAspectj extends Plugin {
 
     def fileOption(option: String, file: File): Seq[String] = {
       Seq(option, file.absolutePath)
+    }
+
+    def fileOption(option: String, file: Option[File]): Seq[String] = {
+      if (file.isDefined) Seq(option, file.get.absolutePath) else Seq.empty
     }
 
     def logCounts(inputs: Seq[File], sources: Seq[File], binaries: Seq[File], output: File, options: AspectjOptions, log: Logger): Unit = {
