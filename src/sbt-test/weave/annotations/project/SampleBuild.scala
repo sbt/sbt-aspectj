@@ -2,8 +2,8 @@ package sample
 
 import sbt._
 import sbt.Keys._
-import com.typesafe.sbt.SbtAspectj.{ Aspectj, aspectjSettings }
-import com.typesafe.sbt.SbtAspectj.AspectjKeys.{ compiledClasses, inputs, weave }
+import com.typesafe.sbt.SbtAspectj.{ Aspectj, aspectjSettings, compiledClasses }
+import com.typesafe.sbt.SbtAspectj.AspectjKeys.{ inputs, weave }
 
 object SampleBuild extends Build {
   lazy val sample = Project(
@@ -15,7 +15,7 @@ object SampleBuild extends Build {
       scalaVersion := "2.10.1",
 
       // add compiled classes as an input to aspectj
-      inputs in Aspectj <+= compiledClasses in Aspectj,
+      inputs in Aspectj <+= compiledClasses,
 
       // use the results of aspectj weaving
       products in Compile <<= products in Aspectj,

@@ -2,8 +2,8 @@ package sample
 
 import sbt._
 import sbt.Keys._
-import com.typesafe.sbt.SbtAspectj.{ Aspectj, aspectjSettings }
-import com.typesafe.sbt.SbtAspectj.AspectjKeys.{ binaries, compiledClasses, compileOnly, inputs, lintProperties }
+import com.typesafe.sbt.SbtAspectj.{ Aspectj, aspectjSettings, compiledClasses }
+import com.typesafe.sbt.SbtAspectj.AspectjKeys.{ binaries, compileOnly, inputs, lintProperties }
 
 object SampleBuild extends Build {
   lazy val buildSettings = Defaults.defaultSettings ++ Seq(
@@ -45,7 +45,7 @@ object SampleBuild extends Build {
       binaries in Aspectj <++= products in Compile in tracer,
 
       // weave this project's classes
-      inputs in Aspectj <+= compiledClasses in Aspectj,
+      inputs in Aspectj <+= compiledClasses,
       products in Compile <<= products in Aspectj,
       products in Runtime <<= products in Compile
     )

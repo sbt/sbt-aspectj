@@ -43,8 +43,6 @@ object SbtAspectj extends Plugin {
     val output = TaskKey[File]("output", "The output class directory or jar file for AspectJ.")
     val aspectjClasspath = TaskKey[Classpath]("aspectj-classpath", "The classpath used for running AspectJ.")
 
-    val compiledClasses = TaskKey[File]("compiled-classes", "The compile classes directory (after compile).")
-
     val ajc = TaskKey[File]("ajc", "Run the AspectJ compiler.")
     val weave = TaskKey[File]("weave", "Weave with AspectJ.")
 
@@ -78,8 +76,6 @@ object SbtAspectj extends Plugin {
     inputs := Seq.empty,
     binaries := Seq.empty,
     managedClasspath <<= (configuration, classpathTypes, update) map Classpaths.managedJars,
-    dependencyClasspath <<= dependencyClasspath in Compile,
-    compiledClasses <<= compileClasses,
     aspectjClasspath <<= combineClasspaths,
     ajc <<= ajcTask,
     copyResources <<= copyResourcesTask,
@@ -107,12 +103,8 @@ object SbtAspectj extends Plugin {
       } else None
     }
 
-    def compileClasses = (compile in Compile, compileInputs in Compile) map {
-      (_, inputs) => inputs.config.classesDirectory
-    }
-
-    def combineClasspaths = (managedClasspath, dependencyClasspath, compiledClasses) map {
-      (mcp, dcp, classes) => Attributed.blank(classes) +: (mcp ++ dcp)
+    def combineClasspaths = (managedClasspath, dependencyClasspath in Compile, compile in Compile, compileInputs in Compile) map {
+      (mcp, dcp, _, inputs) => Attributed.blank(inputs.config.classesDirectory) +: (mcp ++ dcp)
     }
 
     def collectAspectSources = (sourceDirectories, includeFilter, excludeFilter) map {
@@ -231,7 +223,11 @@ object SbtAspectj extends Plugin {
     }
   }
 
-  // classpath helpers
+  // helper methods
+
+  def compiledClasses = (compile in Compile, compileInputs in Compile) map {
+    (_, inputs) => inputs.config.classesDirectory
+  }
 
   def useInstrumentedClasses(config: Configuration) = {
     (fullClasspath in config, inputs in Aspectj, weave in Aspectj) map {
