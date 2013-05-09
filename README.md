@@ -18,30 +18,6 @@ Sample projects
 There are [runnable sample projects][samples] included as sbt scripted tests.
 
 
-Example settings
-----------------
-
-Set the aspectj inputs:
-
-```scala
-inputs in Aspectj <<= update map { report =>
-  report.matching(moduleFilter(organization = "com.typesafe.akka", name = "akka-actor*"))
-}
-```
-
-Replace the original jars in the test classpath with the instrumented classes:
-
-```scala
-fullClasspath in Test <<= SbtAspectj.useInstrumentedClasses(Test)
-```
-
-
-Weave
------
-
-The command to run the aspectj compiler is `aspectj:weave`.
-
-
 Mailing list
 ------------
 
