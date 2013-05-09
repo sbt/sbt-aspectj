@@ -14,9 +14,13 @@ object SampleBuild extends Build {
       version := "0.1-SNAPSHOT",
       scalaVersion := "2.10.1",
       libraryDependencies += "com.typesafe.akka" %% "akka-actor" % "2.1.2",
-      inputs in Aspectj <<= update map { report =>
+
+      // add akka-actor as an aspectj input (find it in the update report)
+      inputs in Aspectj <++= update map { report =>
         report.matching(moduleFilter(organization = "com.typesafe.akka", name = "akka-actor*"))
       },
+
+      // replace the original akka-actor jar with the instrumented classes in runtime
       fullClasspath in Runtime <<= useInstrumentedClasses(Runtime)
     )
   )

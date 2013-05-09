@@ -3,7 +3,7 @@ package sample;
 import akka.actor.ActorRef;
 import akka.pattern.AskSupport;
 
-privileged public aspect ActorWeaveAspect {
+privileged public aspect WeaveActor {
 
   // print on ask
 
