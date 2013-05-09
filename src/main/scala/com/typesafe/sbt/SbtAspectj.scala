@@ -240,6 +240,6 @@ object SbtAspectj extends Plugin {
   }
 
   def insertInstrumentedClasses(classpath: Classpath, inputs: Seq[File], output: File) = {
-    classpath map { a => if (inputs contains a.data) Attributed.blank(output) else a }
+    (classpath filterNot { inputs contains _.data }) :+ Attributed.blank(output)
   }
 }
