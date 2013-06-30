@@ -118,8 +118,8 @@ object SbtAspectj extends Plugin {
           runAjc(inputs, sources, binaries, output, options, classpath.files, cacheDir, s.log)
           Set(output)
         }
-        val allInputs = inputs flatMap { i => if (i.isDirectory) (i ** "*.class").get else Seq(i) }
-        val cacheInputs = (allInputs ++ sources ++ binaries).toSet
+        val expanded = (inputs ++ binaries) flatMap { i => if (i.isDirectory) (i ** "*.class").get else Seq(i) }
+        val cacheInputs = (expanded ++ sources).toSet
         cached(cacheInputs)
         output
       }
