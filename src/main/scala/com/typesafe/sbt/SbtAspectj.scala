@@ -166,12 +166,18 @@ object SbtAspectj extends Plugin {
     def logCounts(inputs: Seq[File], sources: Seq[File], binaries: Seq[File], output: File, options: AspectjOptions, log: Logger): Unit = {
       def opt(s: String): Option[String] = if (s.isEmpty) None else Some(s)
       val running = if (options.compileOnly) "Compiling" else "Weaving"
-      val inputCount = Util.counted("input", "", "s", inputs.length)
-      val sourceCount = Util.counted("AspectJ source", "", "s", sources.length)
-      val binaryCount = Util.counted("AspectJ binar", "y", "ies", binaries.length)
+      val inputCount = counted("input", "", "s", inputs.length)
+      val sourceCount = counted("AspectJ source", "", "s", sources.length)
+      val binaryCount = counted("AspectJ binar", "y", "ies", binaries.length)
       val aspectCount = opt((sourceCount ++ binaryCount).mkString(" and "))
-      val counted = (inputCount ++ aspectCount).mkString(" with ")
-      if (counted.nonEmpty) { log.info("%s %s to %s..." format (running, counted, output)) }
+      val counts = (inputCount ++ aspectCount).mkString(" with ")
+      if (counts.nonEmpty) { log.info("%s %s to %s..." format (running, counts, output)) }
+    }
+
+    def counted(prefix: String, single: String, plural: String, count: Int): Option[String] = count match {
+      case 0 => None
+      case 1 => Some("1 " + prefix + single)
+      case n => Some(n.toString + " " + prefix + plural)
     }
 
     def copyResourcesTask = (cacheDirectory, inputs, classDirectory in Compile, copyResources in Compile, classDirectory) map {
