@@ -103,8 +103,8 @@ object SbtAspectj extends Plugin {
       } else None
     }
 
-    def combineClasspaths = (managedClasspath, dependencyClasspath in Compile, compile in Compile, compileInputs in Compile) map {
-      (mcp, dcp, _, inputs) => Attributed.blank(inputs.config.classesDirectory) +: (mcp ++ dcp)
+    def combineClasspaths = (managedClasspath, dependencyClasspath in Compile, compile in Compile, classDirectory in Compile) map {
+      (mcp, dcp, _, classes) => Attributed.blank(classes) +: (mcp ++ dcp)
     }
 
     def collectAspectSources = (sourceDirectories, includeFilter, excludeFilter) map {
@@ -231,8 +231,8 @@ object SbtAspectj extends Plugin {
 
   // helper methods
 
-  def compiledClasses = (compile in Compile, compileInputs in Compile) map {
-    (_, inputs) => inputs.config.classesDirectory
+  def compiledClasses = (compile in Compile, classDirectory in Compile) map {
+    (_, classes) => classes
   }
 
   def useInstrumentedClasses(config: Configuration) = {
