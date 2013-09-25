@@ -7,7 +7,7 @@ name := "sbt-aspectj"
 
 version := "0.9.3-SNAPSHOT"
 
-libraryDependencies += "org.aspectj" % "aspectjtools" % "1.7.2"
+libraryDependencies += "org.aspectj" % "aspectjtools" % "1.7.3"
 
 publishMavenStyle := false
 
