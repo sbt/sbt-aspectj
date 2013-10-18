@@ -33,7 +33,7 @@ This code is open source software licensed under the [Apache 2.0 License]
 [apache]. Feel free to use it accordingly.
 
 
-[sbt]: https://github.com/harrah/xsbt
+[sbt]: https://github.com/sbt/sbt
 [aspectj]: http://www.eclipse.org/aspectj
 [samples]: https://github.com/sbt/sbt-aspectj/tree/v0.9.3/src/sbt-test
 [cla]: http://www.typesafe.com/contribute/cla
