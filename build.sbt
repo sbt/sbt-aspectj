@@ -5,7 +5,7 @@ organization := "com.typesafe.sbt"
 
 name := "sbt-aspectj"
 
-version := "0.9.4-SNAPSHOT"
+version := "0.9.5-SNAPSHOT"
 
 libraryDependencies += "org.aspectj" % "aspectjtools" % "1.7.3"
 
