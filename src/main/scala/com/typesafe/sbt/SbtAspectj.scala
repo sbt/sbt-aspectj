@@ -34,7 +34,7 @@ object SbtAspectj extends Plugin {
     val sourceLevel = SettingKey[String]("source-level", "The AspectJ source level option.")
     val lintProperties = SettingKey[Seq[String]]("lint-properties", "AspectJ -Xlint properties.")
     val lintPropertiesFile = TaskKey[Option[File]]("lint-properties-file", "Write any -Xlint properties to a file.")
-    val extraOptions = TaskKey[Seq[String]]("extra-options", "Extra AspectJ options (which don't have provided sbt settings).")
+    val extraAspectjOptions = TaskKey[Seq[String]]("extra-aspectj-options", "Extra AspectJ options (which don't have provided sbt settings).")
     val aspectjOptions = TaskKey[AspectjOptions]("aspectj-options", "Configurable AspectJ options.")
 
     val aspectjSource = SettingKey[File]("aspectj-source", "Source directory for aspects.")
@@ -65,8 +65,8 @@ object SbtAspectj extends Plugin {
     sourceLevel := "-1.5",
     lintProperties := Seq.empty,
     lintPropertiesFile <<= writeLintProperties,
-    extraOptions := Seq.empty,
-    aspectjOptions <<= (showWeaveInfo, verbose, compileOnly, outXml, sourceLevel, lintPropertiesFile, extraOptions) map AspectjOptions,
+    extraAspectjOptions := Seq.empty,
+    aspectjOptions <<= (showWeaveInfo, verbose, compileOnly, outXml, sourceLevel, lintPropertiesFile, extraAspectjOptions) map AspectjOptions,
     aspectjSource <<= (sourceDirectory in Compile) / "aspectj",
     sourceDirectories <<= Seq(aspectjSource).join,
     includeFilter := "*.aj",
