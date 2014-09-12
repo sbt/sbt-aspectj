@@ -1,1 +1,1 @@
-addSbtPlugin("com.typesafe.sbt" % "sbt-aspectj" % "0.9.5-SNAPSHOT")
+addSbtPlugin("com.typesafe.sbt" % "sbt-aspectj" % sys.props("project.version"))
