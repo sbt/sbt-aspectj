@@ -7,7 +7,6 @@ load-time weaving.
 
 To run the sample test, call `sbt check`.
 
-
 ## Adding inputs
 
 To weave annotation-based aspects, add the compiled classes as an input. There
