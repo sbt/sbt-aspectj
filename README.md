@@ -11,7 +11,7 @@ Add plugin
 
 Add plugin to `project/plugins.sbt`. For example:
 
-    addSbtPlugin("com.typesafe.sbt" % "sbt-aspectj" % "0.10.0")
+    addSbtPlugin("com.typesafe.sbt" % "sbt-aspectj" % "0.10.1")
 
 
 Sample projects
