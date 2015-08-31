@@ -11,7 +11,7 @@ Add plugin
 
 Add plugin to `project/plugins.sbt`. For example:
 
-    addSbtPlugin("com.typesafe.sbt" % "sbt-aspectj" % "0.10.2")
+    addSbtPlugin("com.typesafe.sbt" % "sbt-aspectj" % "0.10.3")
 
 
 Sample projects
@@ -37,6 +37,6 @@ This code is open source software licensed under the [Apache 2.0 License]
 
 [sbt]: https://github.com/sbt/sbt
 [aspectj]: http://www.eclipse.org/aspectj
-[samples]: https://github.com/sbt/sbt-aspectj/tree/v0.10.2/src/sbt-test
+[samples]: https://github.com/sbt/sbt-aspectj/tree/v0.10.3/src/sbt-test
 [cla]: http://www.typesafe.com/contribute/cla
 [apache]: http://www.apache.org/licenses/LICENSE-2.0.html
