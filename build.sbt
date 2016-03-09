@@ -3,7 +3,7 @@ sbtPlugin := true
 
 organization := "com.typesafe.sbt"
 name := "sbt-aspectj"
-version := "0.10-SNAPSHOT"
+version := "0.10.5"
 
 libraryDependencies += "org.aspectj" % "aspectjtools" % "1.8.8"
 
