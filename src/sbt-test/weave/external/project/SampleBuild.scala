@@ -12,7 +12,7 @@ object SampleBuild extends Build {
   lazy val buildSettings = Defaults.defaultSettings ++ Seq(
     organization := Organization,
     version := Version,
-    scalaVersion := "2.10.1"
+    scalaVersion := "2.12.1"
   )
 
   lazy val sample = Project(

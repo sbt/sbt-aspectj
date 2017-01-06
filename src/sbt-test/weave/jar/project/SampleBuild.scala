@@ -12,8 +12,8 @@ object SampleBuild extends Build {
     settings = Defaults.defaultSettings ++ aspectjSettings ++ Seq(
       organization := "com.typesafe.sbt.aspectj",
       version := "0.1-SNAPSHOT",
-      scalaVersion := "2.10.1",
-      libraryDependencies += "com.typesafe.akka" %% "akka-actor" % "2.1.2",
+      scalaVersion := "2.12.1",
+      libraryDependencies += "com.typesafe.akka" %% "akka-actor" % "2.4.16",
 
       // add akka-actor as an aspectj input (find it in the update report)
       inputs in Aspectj <++= update map { report =>

@@ -13,3 +13,7 @@ bintrayOrganization := Some("sbt")
 bintrayRepository := "sbt-plugin-releases"
 bintrayPackage := name.value
 bintrayReleaseOnPublish := false
+
+scriptedSettings
+scriptedDependencies := publishLocal.value
+scriptedLaunchOpts ++= Seq("-Xms512m", "-Xmx512m", s"-Dproject.version=${version.value}")
