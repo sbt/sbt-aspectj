@@ -9,7 +9,7 @@ object SampleBuild extends Build {
   lazy val buildSettings = Defaults.defaultSettings ++ Seq(
     organization := "com.typesafe.sbt.aspectj",
     version := "0.1-SNAPSHOT",
-    scalaVersion := "2.10.4"
+    scalaVersion := "2.12.1"
   )
 
   lazy val sample = Project(

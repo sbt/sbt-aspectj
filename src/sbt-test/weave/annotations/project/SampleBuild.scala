@@ -12,7 +12,7 @@ object SampleBuild extends Build {
     settings = Defaults.defaultSettings ++ aspectjSettings ++ Seq(
       organization := "com.typesafe.sbt.aspectj",
       version := "0.1-SNAPSHOT",
-      scalaVersion := "2.10.1",
+      scalaVersion := "2.12.1",
 
       // add compiled classes as an input to aspectj
       inputs in Aspectj <+= compiledClasses,

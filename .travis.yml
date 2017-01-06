@@ -1,2 +1,3 @@
 language: scala
-script: sbt "^ publish-local" "^ scripted"
+jdk: oraclejdk8
+script: sbt scripted

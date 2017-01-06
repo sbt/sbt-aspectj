@@ -20,5 +20,5 @@ object Sample extends App {
   val result = Await.result(actor ? "world", timeout.duration)
   println(result)
 
-  system.shutdown()
+  system.terminate()
 }
