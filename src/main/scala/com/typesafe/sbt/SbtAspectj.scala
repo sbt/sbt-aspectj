@@ -221,7 +221,10 @@ object SbtAspectj extends Plugin {
     }
 
     def getWeaver = update map { report =>
-      report.matching(moduleFilter(organization = "org.aspectj", name = "aspectjweaver")).headOption
+      report.matching {
+        moduleFilter(organization = "org.aspectj", name = "aspectjweaver") &&
+        artifactFilter(`type` = "jar")
+      }.headOption
     }
 
     def createWeaverOptions = weaver map { weaver =>
