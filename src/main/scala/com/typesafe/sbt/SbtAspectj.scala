@@ -3,7 +3,6 @@ package com.typesafe.sbt
 import sbt._
 import sbt.Configurations.Compile
 import sbt.Keys._
-import sbt.Project.Initialize
 import sbt.plugins.JvmPlugin
 
 import java.io.File
@@ -70,7 +69,7 @@ object SbtAspectj extends AutoPlugin {
     ivyConfigurations += Aspectj,
     libraryDependencies ++= {
       val version = (aspectjVersion in Aspectj).value
-        Seq(
+      Seq(
         "org.aspectj" % "aspectjtools" % version % Aspectj,
         "org.aspectj" % "aspectjweaver" % version % Aspectj,
         "org.aspectj" % "aspectjrt" % version
