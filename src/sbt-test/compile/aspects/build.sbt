@@ -34,10 +34,7 @@ lazy val instrumented = (project in file("instrumented"))
     // weave this project's classes
     inputs in Aspectj += (compiledClasses in Aspectj).value,
     products in Compile := (products in Aspectj).value,
-    products in Runtime := (products in Compile).value,
-
-    showWeaveInfo in Aspectj := true,
-    verbose in Aspectj := true
+    products in Runtime := (products in Compile).value
   ).dependsOn(tracer)
 
 // for sbt scripted test:

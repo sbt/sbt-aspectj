@@ -16,8 +16,8 @@ fullClasspath in Runtime := useInstrumentedClasses(Runtime).value
 
 // for sbt scripted test:
 TaskKey[Unit]("check") := {
-  val cp = (fullClasspath in Compile).value
-  val mc = (mainClass in Compile).value
+  val cp = (fullClasspath in Runtime).value
+  val mc = (mainClass in Runtime).value
   val opts = (javaOptions in run in Compile).value
 
   val expected = "Actor asked world\nhello world\n"
