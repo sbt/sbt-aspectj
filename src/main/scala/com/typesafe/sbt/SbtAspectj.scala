@@ -48,7 +48,7 @@ object SbtAspectj extends AutoPlugin {
     ),
     aspectjSource := (sourceDirectory in Compile).value / "aspectj",
     sourceDirectories := Seq(aspectjSource.value),
-    compiledClasses := (classDirectory in Compile).value,
+    compiledClasses := compiledClassesTask.value,
     includeFilter := "*.aj",
     excludeFilter := HiddenFileFilter,
     sources := collectAspectSources.value,
@@ -58,7 +58,7 @@ object SbtAspectj extends AutoPlugin {
     managedClasspath := Classpaths.managedJars(configuration.value, classpathTypes.value, update.value),
     aspectjClasspath := combineClasspaths.value,
     ajc := ajcTask.value,
-    copyResources := copyResourcesTask.dependsOn(copyResources in Compile).value,
+    copyResources := copyResourcesTask.value,
     weave := ajc.dependsOn(copyResources).value,
     products := Seq(weave.value),
     weaver := getWeaver.value,
@@ -90,7 +90,7 @@ object SbtAspectj extends AutoPlugin {
     def combineClasspaths = Def.task {
       Attributed.blank((classDirectory in Compile).value) +:
         (managedClasspath.value ++ (dependencyClasspath in Compile).value)
-    }
+    }.dependsOn(compile in Compile)
 
     def collectAspectSources = Def.task {
       sourceDirectories.value.descendantsExcept(includeFilter.value, excludeFilter.value).get
@@ -224,6 +224,10 @@ object SbtAspectj extends AutoPlugin {
   }
 
   // helper methods
+
+  private def compiledClassesTask = Def.task {
+    (classDirectory in Compile).value
+  }.dependsOn(compile in Compile)
 
   def useInstrumentedClasses(config: Configuration) = Def.task {
     val cp   = (fullClasspath in config).value

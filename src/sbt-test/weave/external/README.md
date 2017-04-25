@@ -14,7 +14,5 @@ The aspect jar files can be added as aspectj binaries by finding them in the
 update report. For example:
 
 ```scala
-binaries in Aspectj <++= update map { report =>
-  report.matching(moduleFilter(organization = "org.something", name = "some-aspects"))
-}
+binaries in Aspectj ++= update.value map.matching(moduleFilter(organization = "org.something", name = "some-aspects"))
 ```

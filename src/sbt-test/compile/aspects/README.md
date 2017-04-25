@@ -34,5 +34,5 @@ To package the compiled aspects, replace the regular compile products with the
 aspectj products:
 
 ```scala
-products in Compile <<= products in Aspectj
+products in Compile := (products in Aspectj).value
 ```

@@ -1,6 +1,9 @@
+val Organization = "com.typesafe.sbt.aspectj.sample.external"
+val Version = "0.1-SNAPSHOT"
+
 lazy val buildSettings = Seq(
-  organization := "com.typesafe.sbt.aspectj",
-  version := "0.1-SNAPSHOT",
+  organization := Organization,
+  version := Version,
   scalaVersion := "2.12.1"
 )
 
@@ -8,35 +11,37 @@ lazy val sample = (project in file("."))
   .settings(buildSettings)
   .aggregate(tracer, instrumented)
 
-// precompiled aspects
+// compiled aspects (published locally for this sample)
 lazy val tracer = (project in file("tracer"))
   .enablePlugins(SbtAspectj)
   .settings(buildSettings)
   .settings(
-    // input compiled scala classes
-    inputs in Aspectj += (compiledClasses in Aspectj).value,
+    // only compile the aspects (no weaving)
+    compileOnly in Aspectj := true,
 
-    // ignore warnings
+    // ignore warnings (we don't have the target classes at this point)
     lintProperties in Aspectj += "invalidAbsoluteTypeName = ignore",
-    lintProperties in Aspectj += "adviceDidNotMatch = ignore",
 
     // replace regular products with compiled aspects
-    products in Compile := (products in Aspectj).value
+    products in Compile ++= (products in Aspectj).value
   )
 
-// test that the instrumentation works
+// use the published tracer (as if it was external)
 lazy val instrumented = (project in file("instrumented"))
   .enablePlugins(SbtAspectj)
   .settings(buildSettings)
   .settings(
-    // add the compiled aspects from tracer
-    binaries in Aspectj ++= (products in Compile in tracer).value,
+    // add the compiled aspects as a dependency
+    libraryDependencies += Organization %% "tracer" % Version,
+
+    // add the tracer as binary aspects for aspectj
+    binaries in Aspectj ++= update.value.matching(moduleFilter(organization = Organization, name = "tracer*")),
 
     // weave this project's classes
     inputs in Aspectj += (compiledClasses in Aspectj).value,
     products in Compile := (products in Aspectj).value,
     products in Runtime := (products in Compile).value
-  ).dependsOn(tracer)
+  )
 
 // for sbt scripted test:
 TaskKey[Unit]("check") := {
