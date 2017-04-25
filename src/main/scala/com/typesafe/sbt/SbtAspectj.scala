@@ -4,125 +4,113 @@ import sbt._
 import sbt.Configurations.Compile
 import sbt.Keys._
 import sbt.Project.Initialize
+import sbt.plugins.JvmPlugin
 
 import java.io.File
 import org.aspectj.bridge.{ AbortException, IMessageHandler, IMessage, MessageHandler }
 import org.aspectj.tools.ajc.Main
 
-object SbtAspectj extends Plugin {
-  case class AspectjOptions(
-    showWeaveInfo: Boolean,
-    verbose: Boolean,
-    compileOnly: Boolean,
-    outXml: Boolean,
-    sourceLevel: String,
-    lintProperties: Option[File],
-    extraOptions: Seq[String]
-  )
+object SbtAspectj extends AutoPlugin {
 
-  val Aspectj = config("aspectj") hide
-
-  object AspectjKeys {
-    val aspectjVersion = SettingKey[String]("aspectj-version", "AspectJ version to use.")
-
-    val aspectjDirectory = SettingKey[File]("aspectj-directory", "Target directory for AspectJ.")
-
-    val showWeaveInfo = SettingKey[Boolean]("show-weave-info", "Enable the -showWeaveInfo AspectJ option.")
-    val verbose = SettingKey[Boolean]("verbose", "Enable the -verbose AspectJ option.")
-    val compileOnly = SettingKey[Boolean]("compile-only", "The AspectJ -XterminateAfterCompilation option.")
-    val outXml = SettingKey[Boolean]("out-xml", "Enable the -outxml AspectJ option.")
-    val sourceLevel = SettingKey[String]("source-level", "The AspectJ source level option.")
-    val lintProperties = SettingKey[Seq[String]]("lint-properties", "AspectJ -Xlint properties.")
-    val lintPropertiesFile = TaskKey[Option[File]]("lint-properties-file", "Write any -Xlint properties to a file.")
-    val extraAspectjOptions = TaskKey[Seq[String]]("extra-aspectj-options", "Extra AspectJ options (which don't have provided sbt settings).")
-    val aspectjOptions = TaskKey[AspectjOptions]("aspectj-options", "Configurable AspectJ options.")
-
-    val aspectjSource = SettingKey[File]("aspectj-source", "Source directory for aspects.")
-    val inputs = TaskKey[Seq[File]]("inputs", "Jars or class directories to weave. Passed to the -inpath AspectJ option.")
-    val binaries = TaskKey[Seq[File]]("binaries", "Binary aspects passed to the -aspectpath AspectJ option.")
-    val output = TaskKey[File]("output", "The output class directory or jar file for AspectJ.")
-    val aspectjClasspath = TaskKey[Classpath]("aspectj-classpath", "The classpath used for running AspectJ.")
-
-    val ajc = TaskKey[File]("ajc", "Run the AspectJ compiler.")
-    val weave = TaskKey[File]("weave", "Weave with AspectJ.")
-
-    val weaver = TaskKey[Option[File]]("weaver", "Location of AspectJ load-time weaver.")
-    val weaverOptions = TaskKey[Seq[String]]("weaver-options", "JVM options for AspectJ weaver java agent.")
+  object autoImport extends AspectjKeys {
+    val Aspectj = config("aspectj") hide
   }
 
-  import AspectjKeys._
+  override def requires = JvmPlugin
+
+  import autoImport._
   import Ajc._
 
   lazy val aspectjSettings: Seq[Setting[_]] = inConfig(Aspectj)(defaultAspectjSettings) ++ aspectjDependencySettings
 
+  override def projectConfigurations: Seq[Configuration] = Seq(Aspectj)
+
+  override def projectSettings: Seq[Def.Setting[_]] = aspectjSettings
+
   def defaultAspectjSettings = Seq(
     aspectjVersion := "1.8.10",
-    aspectjDirectory <<= crossTarget / "aspectj",
+    aspectjDirectory := crossTarget.value / "aspectj",
     showWeaveInfo := false,
     verbose := false,
     compileOnly := false,
-    outXml <<= compileOnly,
+    outXml := compileOnly.value,
     sourceLevel := "-1.5",
     lintProperties := Seq.empty,
-    lintPropertiesFile <<= writeLintProperties,
+    lintPropertiesFile := writeLintProperties.value,
     extraAspectjOptions := Seq.empty,
-    aspectjOptions <<= (showWeaveInfo, verbose, compileOnly, outXml, sourceLevel, lintPropertiesFile, extraAspectjOptions) map AspectjOptions,
-    aspectjSource <<= (sourceDirectory in Compile) / "aspectj",
-    sourceDirectories <<= Seq(aspectjSource).join,
+    aspectjOptions := AspectjOptions(
+      showWeaveInfo.value,
+      verbose.value,
+      compileOnly.value,
+      outXml.value,
+      sourceLevel.value,
+      lintPropertiesFile.value,
+      extraAspectjOptions.value
+    ),
+    aspectjSource := (sourceDirectory in Compile).value / "aspectj",
+    sourceDirectories := Seq(aspectjSource.value),
+    compiledClasses := (classDirectory in Compile).value,
     includeFilter := "*.aj",
     excludeFilter := HiddenFileFilter,
-    sources <<= collectAspectSources,
-    classDirectory <<= aspectjDirectory / "classes",
+    sources := collectAspectSources.value,
+    classDirectory := aspectjDirectory.value / "classes",
     inputs := Seq.empty,
     binaries := Seq.empty,
-    managedClasspath <<= (configuration, classpathTypes, update) map Classpaths.managedJars,
-    aspectjClasspath <<= combineClasspaths,
-    ajc <<= ajcTask,
-    copyResources <<= copyResourcesTask,
-    weave <<= (ajc, copyResources) map { (instrumented, _) => instrumented },
-    products <<= weave map { instrumented => Seq(instrumented) },
-    weaver <<= getWeaver,
-    weaverOptions <<= createWeaverOptions
+    managedClasspath := Classpaths.managedJars(configuration.value, classpathTypes.value, update.value),
+    aspectjClasspath := combineClasspaths.value,
+    ajc := ajcTask.value,
+    copyResources := copyResourcesTask.dependsOn(copyResources in Compile).value,
+    weave := ajc.dependsOn(copyResources).value,
+    products := Seq(weave.value),
+    weaver := getWeaver.value,
+    weaverOptions := createWeaverOptions.value
   )
 
   def aspectjDependencySettings = Seq(
     ivyConfigurations += Aspectj,
-    libraryDependencies <++= (aspectjVersion in Aspectj) { version => Seq(
-      "org.aspectj" % "aspectjtools" % version % Aspectj.name,
-      "org.aspectj" % "aspectjweaver" % version % Aspectj.name,
-      "org.aspectj" % "aspectjrt" % version
-    )}
+    libraryDependencies ++= {
+      val version = (aspectjVersion in Aspectj).value
+        Seq(
+        "org.aspectj" % "aspectjtools" % version % Aspectj,
+        "org.aspectj" % "aspectjweaver" % version % Aspectj,
+        "org.aspectj" % "aspectjrt" % version
+      )
+    }
   )
 
   object Ajc {
-    def writeLintProperties = (lintProperties, aspectjDirectory) map { (props, dir) =>
+    def writeLintProperties = Def.task {
+      val props = lintProperties.value
       if (props.nonEmpty) {
-        val file = dir / "lint.properties"
+        val file = aspectjDirectory.value / "lint.properties"
         IO.writeLines(file, props)
         Some(file)
       } else None
     }
 
-    def combineClasspaths = (managedClasspath, dependencyClasspath in Compile, compile in Compile, classDirectory in Compile) map {
-      (mcp, dcp, _, classes) => Attributed.blank(classes) +: (mcp ++ dcp)
+    def combineClasspaths = Def.task {
+      Attributed.blank((classDirectory in Compile).value) +:
+        (managedClasspath.value ++ (dependencyClasspath in Compile).value)
     }
 
-    def collectAspectSources = (sourceDirectories, includeFilter, excludeFilter) map {
-      (dirs, include, exclude) => dirs.descendantsExcept(include, exclude).get
+    def collectAspectSources = Def.task {
+      sourceDirectories.value.descendantsExcept(includeFilter.value, excludeFilter.value).get
     }
 
-    def ajcTask = (inputs, sources, binaries, classDirectory, aspectjOptions, aspectjClasspath, cacheDirectory, streams) map {
-      (inputs, sources, binaries, output, options, classpath, cache, s) => {
-        val cacheDir = cache / "aspectj"
-        val cached = FileFunction.cached(cacheDir / "ajc-inputs", FilesInfo.hash) { _ =>
-          runAjc(inputs, sources, binaries, output, options, classpath.files, cacheDir, s.log)
-          Set(output)
-        }
-        val expanded = (inputs ++ binaries) flatMap { i => if (i.isDirectory) (i ** "*.class").get else Seq(i) }
-        val cacheInputs = (expanded ++ sources).toSet
-        cached(cacheInputs)
-        output
+    def ajcTask = Def.task {
+      val cacheDir  = streams.value.cacheDirectory / "aspectj"
+      val outputDir = classDirectory.value
+
+      val cached = FileFunction.cached(cacheDir / "ajc-inputs", FilesInfo.hash) { _ =>
+        runAjc(inputs.value, sources.value, binaries.value, outputDir,
+          aspectjOptions.value, aspectjClasspath.value.files, cacheDir, streams.value.log
+        )
+        Set(outputDir)
       }
+      val expanded = (inputs.value ++ binaries.value) flatMap { i => if (i.isDirectory) (i ** "*.class").get else Seq(i) }
+      val cacheInputs = (expanded ++ sources.value).toSet
+      cached(cacheInputs)
+      outputDir
     }
 
     def runAjc(inputs: Seq[File], sources: Seq[File], binaries: Seq[File], output: File, options: AspectjOptions, classpath: Seq[File], cacheDir: File, log: Logger): Unit = {
@@ -180,13 +168,17 @@ object SbtAspectj extends Plugin {
       case n => Some(n.toString + " " + prefix + plural)
     }
 
-    def copyResourcesTask = (cacheDirectory, inputs, classDirectory in Compile, copyResources in Compile, classDirectory) map {
-      (cache, inputs, classes, mappings, output) => {
-        val cacheFile = cache / "aspectj" / "resource-sync"
-        val mapped = if (inputs contains classes) { mappings map (_._2) x rebase(classes, output) } else Seq.empty
-        Sync(cacheFile)(mapped)
-        mapped
-      }
+    def copyResourcesTask = Def.task {
+      val classes = (classDirectory in Compile).value
+      val mappings = (copyResources in Compile).value
+
+      val cacheFile = streams.value.cacheDirectory / "aspectj" / "resource-sync"
+      val mapped = if (inputs.value contains classes) {
+        mappings map (_._2) pair rebase(classes, classDirectory.value)
+      } else Seq.empty
+
+      Sync(cacheFile)(mapped)
+      mapped
     }
 
     def runAjcMain(options: Array[String], log: Logger): Unit = {
@@ -220,28 +212,26 @@ object SbtAspectj extends Plugin {
       if (logger.errors) throw new AbortException("AspectJ failed")
     }
 
-    def getWeaver = update map { report =>
-      report.matching {
+    def getWeaver = Def.task {
+      update.value.matching {
         moduleFilter(organization = "org.aspectj", name = "aspectjweaver") &&
-        artifactFilter(`type` = "jar")
+          artifactFilter(`type` = "jar")
       }.headOption
     }
 
-    def createWeaverOptions = weaver map { weaver =>
-      weaver.toSeq map { "-javaagent:" + _ }
+    def createWeaverOptions = Def.task {
+      weaver.value.toSeq map { "-javaagent:" + _ }
     }
   }
 
   // helper methods
 
-  def compiledClasses = (compile in Compile, classDirectory in Compile) map {
-    (_, classes) => classes
-  }
+  def useInstrumentedClasses(config: Configuration) = Def.task {
+    val cp   = (fullClasspath in config).value
+    val ins  = (inputs in Aspectj).value
+    val outs = (weave in Aspectj).value
 
-  def useInstrumentedClasses(config: Configuration) = {
-    (fullClasspath in config, inputs in Aspectj, weave in Aspectj) map {
-      (cp, inputs, output) => insertInstrumentedClasses(cp, inputs, output)
-    }
+    insertInstrumentedClasses(cp, ins, outs)
   }
 
   def insertInstrumentedClasses(classpath: Classpath, inputs: Seq[File], output: File) = {
