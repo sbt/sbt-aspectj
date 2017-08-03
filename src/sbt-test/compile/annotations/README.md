@@ -13,7 +13,7 @@ To weave annotation-based aspects, add the compiled classes as an input. There
 is a helper method called `compiledClasses` for doing this:
 
 ```scala
-AspectjKeys.inputs in Aspectj <+= compiledClasses
+AspectjKeys.inputs in Aspectj += (compiledClasses in Aspectj).value
 ```
 
 
@@ -38,5 +38,5 @@ To package the compiled aspects, replace the regular compile products with the
 aspectj products:
 
 ```scala
-products in Compile <<= products in Aspectj
+products in Compile := (products in Aspectj).value
 ```

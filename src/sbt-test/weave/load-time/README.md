@@ -17,7 +17,7 @@ The compiled aspects can be added to the regular compile products, for packaging
 or using from other subprojects, with:
 
 ```scala
-products in Compile <++= products in Aspectj
+products in Compile ++= (products in Aspectj).value
 ```
 
 
@@ -41,5 +41,5 @@ fork in run := true
 Add the aspectj weaver options provided by sbt-aspectj:
 
 ```
-javaOptions in run <++= AspectjKeys.weaverOptions in Aspectj
+javaOptions in run ++= (AspectjKeys.weaverOptions in Aspectj).value
 ```

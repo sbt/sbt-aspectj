@@ -11,9 +11,7 @@ The target jar files can be added as aspectj inputs by finding them in the
 update report. For example:
 
 ```scala
-AspectjKeys.inputs in Aspectj <++= update map { report =>
-  report.matching(moduleFilter(organization = "com.typesafe.akka", name = "akka-actor*"))
-}
+AspectjKeys.inputs in Aspectj ++= update.value.matching(moduleFilter(organization = "com.typesafe.akka", name = "akka-actor*"))
 ```
 
 
@@ -24,5 +22,5 @@ with the instrumented classes. For example, to replace the original akka-actor
 jar on the runtime classpath with the instrumented classes use:
 
 ```scala
-fullClasspath in Runtime <<= useInstrumentedClasses(Runtime)
+fullClasspath in Runtime := useInstrumentedClasses(Runtime).value
 ```
