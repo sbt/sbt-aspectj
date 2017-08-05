@@ -35,8 +35,7 @@ author. Before we can accept pull requests, you will need to agree to the
 License
 -------
 
-This code is open source software licensed under the [Apache 2.0 License]
-[apache]. Feel free to use it accordingly.
+This code is open source software licensed under the [Apache 2.0 License][apache]. Feel free to use it accordingly.
 
 
 [sbt]: https://github.com/sbt/sbt
