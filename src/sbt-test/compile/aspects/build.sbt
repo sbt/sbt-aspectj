@@ -14,10 +14,10 @@ lazy val tracer = (project in file("tracer"))
   .settings(buildSettings)
   .settings(
     // stop after compiling the aspects (no weaving)
-    compileOnly in Aspectj := true,
+    aspectjCompileOnly in Aspectj := true,
 
     // ignore warnings (we don't have the sample classes)
-    lintProperties in Aspectj += "invalidAbsoluteTypeName = ignore",
+    aspectjLintProperties in Aspectj += "invalidAbsoluteTypeName = ignore",
 
     // replace regular products with compiled aspects
     products in Compile := (products in Aspectj).value
@@ -29,10 +29,10 @@ lazy val instrumented = (project in file("instrumented"))
   .settings(buildSettings)
   .settings(
     // add the compiled aspects from tracer
-    binaries in Aspectj ++= (products in Compile in tracer).value,
+    aspectjBinaries in Aspectj ++= (products in Compile in tracer).value,
 
     // weave this project's classes
-    inputs in Aspectj += (compiledClasses in Aspectj).value,
+    aspectjInputs in Aspectj += (aspectjCompiledClasses in Aspectj).value,
     products in Compile := (products in Aspectj).value,
     products in Runtime := (products in Compile).value
   ).dependsOn(tracer)

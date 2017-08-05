@@ -6,7 +6,7 @@ scalaVersion := "2.12.1"
 enablePlugins(SbtAspectj)
 
 // add compiled classes as an input to aspectj
-inputs in Aspectj += (compiledClasses in Aspectj).value
+aspectjInputs in Aspectj += (aspectjCompiledClasses in Aspectj).value
 
 // use the results of aspectj weaving
 products in Compile := (products in Aspectj).value

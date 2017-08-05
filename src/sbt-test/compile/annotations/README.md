@@ -10,10 +10,10 @@ To run the sample test, call `sbt check`.
 ## Adding inputs
 
 To weave annotation-based aspects, add the compiled classes as an input. There
-is a helper method called `compiledClasses` for doing this:
+is a helper method called `aspectjCompiledClasses` for doing this:
 
 ```scala
-AspectjKeys.inputs in Aspectj += (compiledClasses in Aspectj).value
+aspectjInputs in Aspectj += (aspectjCompiledClasses in Aspectj).value
 ```
 
 
@@ -24,11 +24,11 @@ generate lint warnings. These can be ignored by adding lint properties.
 For example:
 
 ```scala
-AspectjKeys.lintProperties in Aspectj += "invalidAbsoluteTypeName = ignore"
+aspectjLintProperties in Aspectj += "invalidAbsoluteTypeName = ignore"
 ```
 
 ```scala
-AspectjKeys.lintProperties in Aspectj += "adviceDidNotMatch = ignore"
+aspectjLintProperties in Aspectj += "adviceDidNotMatch = ignore"
 ```
 
 
