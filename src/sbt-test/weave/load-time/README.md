@@ -10,7 +10,7 @@ To run the sample test, call `sbt check`.
 To only compile aspects (the `-XterminateAfterCompilation` aspectj option) use:
 
 ```scala
-AspectjKeys.compileOnly in Aspectj := true
+aspectjCompileOnly in Aspectj := true
 ```
 
 The compiled aspects can be added to the regular compile products, for packaging
@@ -41,5 +41,5 @@ fork in run := true
 Add the aspectj weaver options provided by sbt-aspectj:
 
 ```
-javaOptions in run ++= (AspectjKeys.weaverOptions in Aspectj).value
+javaOptions in run ++= (aspectjWeaverOptions in Aspectj).value
 ```

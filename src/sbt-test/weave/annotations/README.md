@@ -8,10 +8,10 @@ To run the sample test, call `sbt check`.
 ## Adding inputs
 
 To weave annotation-based aspects, add the compiled classes as an input. There
-is a helper method called `compiledClasses` for doing this:
+is a helper method called `aspectjCompiledClasses` for doing this:
 
 ```scala
-AspectjKeys.inputs in Aspectj += (compiledClasses in Aspectj).value
+aspectjInputs in Aspectj += (aspectjCompiledClasses in Aspectj).value
 ```
 
 

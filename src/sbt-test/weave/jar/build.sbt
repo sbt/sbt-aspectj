@@ -1,4 +1,4 @@
-import com.lightbend.sbt.SbtAspectj.useInstrumentedClasses
+import com.lightbend.sbt.SbtAspectj.aspectjUseInstrumentedClasses
 
 organization := "com.lightbend.sbt.aspectj"
 version := "0.1-SNAPSHOT"
@@ -9,10 +9,10 @@ enablePlugins(SbtAspectj)
 libraryDependencies += "com.typesafe.akka" %% "akka-actor" % "2.4.16"
 
 // add akka-actor as an aspectj input (find it in the update report)
-inputs in Aspectj ++= update.value.matching(moduleFilter(organization = "com.typesafe.akka", name = "akka-actor*"))
+aspectjInputs in Aspectj ++= update.value.matching(moduleFilter(organization = "com.typesafe.akka", name = "akka-actor*"))
 
 // replace the original akka-actor jar with the instrumented classes in runtime
-fullClasspath in Runtime := useInstrumentedClasses(Runtime).value
+fullClasspath in Runtime := aspectjUseInstrumentedClasses(Runtime).value
 
 // for sbt scripted test:
 TaskKey[Unit]("check") := {

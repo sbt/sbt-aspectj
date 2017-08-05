@@ -29,40 +29,40 @@ object SbtAspectj extends AutoPlugin {
   def defaultAspectjSettings = Seq(
     aspectjVersion := "1.8.10",
     aspectjDirectory := crossTarget.value / "aspectj",
-    showWeaveInfo := false,
-    verbose := false,
-    compileOnly := false,
-    outXml := compileOnly.value,
-    sourceLevel := "-1.5",
-    lintProperties := Seq.empty,
-    lintPropertiesFile := writeLintProperties.value,
-    extraAspectjOptions := Seq.empty,
+    aspectjShowWeaveInfo := false,
+    aspectjVerbose := false,
+    aspectjCompileOnly := false,
+    aspectjOutXml := aspectjCompileOnly.value,
+    aspectjSourceLevel := "-1.5",
+    aspectjLintProperties := Seq.empty,
+    aspectjLintPropertiesFile := writeLintProperties.value,
+    aspectjExtraOptions := Seq.empty,
     aspectjOptions := AspectjOptions(
-      showWeaveInfo.value,
-      verbose.value,
-      compileOnly.value,
-      outXml.value,
-      sourceLevel.value,
-      lintPropertiesFile.value,
-      extraAspectjOptions.value
+      aspectjShowWeaveInfo.value,
+      aspectjVerbose.value,
+      aspectjCompileOnly.value,
+      aspectjOutXml.value,
+      aspectjSourceLevel.value,
+      aspectjLintPropertiesFile.value,
+      aspectjExtraOptions.value
     ),
     aspectjSource := (sourceDirectory in Compile).value / "aspectj",
     sourceDirectories := Seq(aspectjSource.value),
-    compiledClasses := compiledClassesTask.value,
+    aspectjCompiledClasses := compiledClassesTask.value,
     includeFilter := "*.aj",
     excludeFilter := HiddenFileFilter,
     sources := collectAspectSources.value,
     classDirectory := aspectjDirectory.value / "classes",
-    inputs := Seq.empty,
-    binaries := Seq.empty,
+    aspectjInputs := Seq.empty,
+    aspectjBinaries := Seq.empty,
     managedClasspath := Classpaths.managedJars(configuration.value, classpathTypes.value, update.value),
     aspectjClasspath := combineClasspaths.value,
     ajc := ajcTask.value,
     copyResources := copyResourcesTask.value,
-    weave := ajc.dependsOn(copyResources).value,
-    products := Seq(weave.value),
-    weaver := getWeaver.value,
-    weaverOptions := createWeaverOptions.value
+    aspectjWeave := ajc.dependsOn(copyResources).value,
+    products := Seq(aspectjWeave.value),
+    aspectjWeaver := getWeaver.value,
+    aspectjWeaverOptions := createWeaverOptions.value
   )
 
   def aspectjDependencySettings = Seq(
@@ -79,7 +79,7 @@ object SbtAspectj extends AutoPlugin {
 
   object Ajc {
     def writeLintProperties = Def.task {
-      val props = lintProperties.value
+      val props = aspectjLintProperties.value
       val dir = aspectjDirectory.value
       if (props.nonEmpty) {
         val file = dir / "lint.properties"
@@ -100,18 +100,18 @@ object SbtAspectj extends AutoPlugin {
     def ajcTask = Def.task {
       val cacheDir  = streams.value.cacheDirectory / "aspectj"
       val outputDir = classDirectory.value
-      val ajcInputs = inputs.value
+      val inputs = aspectjInputs.value
       val ajcSources = sources.value
-      val ajcBinaries = binaries.value
+      val binaries = aspectjBinaries.value
       val options = aspectjOptions.value
       val classpath = aspectjClasspath.value.files
       val log = streams.value.log
 
       val cached = FileFunction.cached(cacheDir / "ajc-inputs", FilesInfo.hash) { _ =>
-        runAjc(ajcInputs, ajcSources, ajcBinaries, outputDir, options, classpath, cacheDir, log)
+        runAjc(inputs, ajcSources, binaries, outputDir, options, classpath, cacheDir, log)
         Set(outputDir)
       }
-      val expanded = (ajcInputs ++ ajcBinaries) flatMap { i => if (i.isDirectory) (i ** "*.class").get else Seq(i) }
+      val expanded = (inputs ++ binaries) flatMap { i => if (i.isDirectory) (i ** "*.class").get else Seq(i) }
       val cacheInputs = (expanded ++ ajcSources).toSet
       cached(cacheInputs)
       outputDir
@@ -173,12 +173,12 @@ object SbtAspectj extends AutoPlugin {
     }
 
     def copyResourcesTask = Def.task {
-      val ajcInputs = inputs.value
+      val inputs = aspectjInputs.value
       val compileClassDir = (classDirectory in Compile).value
       val resourceMappings = (copyResources in Compile).value
       val aspectjClassDir = classDirectory.value
       val taskStreams = streams.value
-      SbtAspectjExtra.copyResources(ajcInputs, compileClassDir, resourceMappings, aspectjClassDir, taskStreams)
+      SbtAspectjExtra.copyResources(inputs, compileClassDir, resourceMappings, aspectjClassDir, taskStreams)
     }
 
     def runAjcMain(options: Array[String], log: Logger): Unit = {
@@ -220,7 +220,7 @@ object SbtAspectj extends AutoPlugin {
     }
 
     def createWeaverOptions = Def.task {
-      weaver.value.toSeq map { "-javaagent:" + _ }
+      aspectjWeaver.value.toSeq map { "-javaagent:" + _ }
     }
   }
 
@@ -230,15 +230,15 @@ object SbtAspectj extends AutoPlugin {
     (classDirectory in Compile).value
   }.dependsOn(compile in Compile)
 
-  def useInstrumentedClasses(config: Configuration) = Def.task {
+  def aspectjUseInstrumentedClasses(config: Configuration) = Def.task {
     val cp   = (fullClasspath in config).value
-    val ins  = (inputs in Aspectj).value
-    val outs = (weave in Aspectj).value
+    val ins  = (aspectjInputs in Aspectj).value
+    val outs = (aspectjWeave in Aspectj).value
 
-    insertInstrumentedClasses(cp, ins, outs)
+    aspectjInsertInstrumentedClasses(cp, ins, outs)
   }
 
-  def insertInstrumentedClasses(classpath: Classpath, inputs: Seq[File], output: File) = {
+  def aspectjInsertInstrumentedClasses(classpath: Classpath, inputs: Seq[File], output: File) = {
     (classpath filterNot { inputs contains _.data }) :+ Attributed.blank(output)
   }
 }

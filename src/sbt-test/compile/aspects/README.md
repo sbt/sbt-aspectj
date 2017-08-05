@@ -10,10 +10,10 @@ To run the sample test, call `sbt check`.
 
 ## Compile-only
 
-To only compile aspects and not weave, set the `compileOnly` option.
+To only compile aspects and not weave, set the `aspectjCompileOnly` option.
 
 ```scala
-AspectjKeys.compileOnly in Aspectj := true
+aspectjCompileOnly in Aspectj := true
 ```
 
 
@@ -24,7 +24,7 @@ generate lint warnings. These can be ignored by adding lint properties.
 For example:
 
 ```scala
-AspectjKeys.lintProperties in Aspectj += "invalidAbsoluteTypeName = ignore"
+aspectjLintProperties in Aspectj += "invalidAbsoluteTypeName = ignore"
 ```
 
 

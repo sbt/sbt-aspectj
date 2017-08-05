@@ -16,7 +16,7 @@ lazy val tracer = (project in file("tracer"))
   .settings(buildSettings)
   .settings(
     // only compile the aspects (no weaving)
-    compileOnly in Aspectj := true,
+    aspectjCompileOnly in Aspectj := true,
 
     // add the compiled aspects as products
     products in Compile ++= (products in Aspectj).value
@@ -31,7 +31,7 @@ lazy val woven = (project in file("woven"))
     fork in run := true,
 
     // add the aspectj weaver javaagent option
-    javaOptions in run ++= (weaverOptions in Aspectj).value
+    javaOptions in run ++= (aspectjWeaverOptions in Aspectj).value
   ).dependsOn(inputs, tracer)
 
 // for sbt scripted test:
