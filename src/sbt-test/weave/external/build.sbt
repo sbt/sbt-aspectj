@@ -1,4 +1,4 @@
-val Organization = "com.typesafe.sbt.aspectj.sample.external"
+val Organization = "com.lightbend.sbt.aspectj.sample.external"
 val Version = "0.1-SNAPSHOT"
 
 lazy val buildSettings = Seq(
@@ -45,6 +45,8 @@ lazy val instrumented = (project in file("instrumented"))
 
 // for sbt scripted test:
 TaskKey[Unit]("check") := {
+  import scala.sys.process.Process
+
   val cp = (fullClasspath in Compile in instrumented).value
   val mc = (mainClass in Compile in instrumented).value
   val opts = (javaOptions in run in Compile in instrumented).value

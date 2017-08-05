@@ -2,7 +2,7 @@
 
 A sample project that uses already compiled and published aspects.
 
-To run the sample test, call `sbt tracer/publish-local check`.
+To run the sample test, call `sbt tracer/publishLocal check`.
 
 
 ## Binary aspects
