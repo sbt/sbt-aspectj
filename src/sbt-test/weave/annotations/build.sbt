@@ -1,5 +1,5 @@
 
-organization := "com.typesafe.sbt.aspectj"
+organization := "com.lightbend.sbt.aspectj"
 version := "0.1-SNAPSHOT"
 scalaVersion := "2.12.1"
 
@@ -14,6 +14,8 @@ products in Runtime := (products in Compile).value
 
 // for sbt scripted test:
 TaskKey[Unit]("check") := {
+  import scala.sys.process.Process
+
   val cp = (fullClasspath in Compile).value
   val mc = (mainClass in Compile).value
   val opts = (javaOptions in run in Compile).value

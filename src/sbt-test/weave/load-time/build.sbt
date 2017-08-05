@@ -1,5 +1,5 @@
 lazy val buildSettings = Seq(
-  organization := "com.typesafe.sbt.aspectj",
+  organization := "com.lightbend.sbt.aspectj",
   version := "0.1-SNAPSHOT",
   scalaVersion := "2.12.1"
 )
@@ -36,6 +36,8 @@ lazy val woven = (project in file("woven"))
 
 // for sbt scripted test:
 TaskKey[Unit]("check") := {
+  import scala.sys.process.Process
+
   val cp = (fullClasspath in Compile in woven).value
   val mc = (mainClass in Compile in woven).value
   val opts = (javaOptions in run in Compile in woven).value
@@ -52,20 +54,3 @@ TaskKey[Unit]("check") := {
     print(output)
   }
 }
-/*TaskKey[Unit]("check") <<= (
-  fullClasspath in Runtime in woven,
-  mainClass in Runtime in woven,
-  javaOptions in run in Compile in woven
-) map { (cp, mc, opts) =>
-  val expected = "Printing sample:\nhello\n"
-  val output = Process("java", opts ++ Seq("-classpath", cp.files.absString, mc getOrElse "")).!!
-  if (output != expected) {
-    println("Unexpected output:")
-    println(output)
-    println("Expected:")
-    println(expected)
-    error("Unexpected output")
-  } else {
-    print(output)
-  }
-}*/

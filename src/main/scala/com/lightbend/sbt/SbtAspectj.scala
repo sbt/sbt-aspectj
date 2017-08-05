@@ -1,4 +1,4 @@
-package com.typesafe.sbt
+package com.lightbend.sbt
 
 import sbt._
 import sbt.Configurations.Compile
@@ -12,7 +12,7 @@ import org.aspectj.tools.ajc.Main
 object SbtAspectj extends AutoPlugin {
 
   object autoImport extends AspectjKeys {
-    val Aspectj = config("aspectj") hide
+    val Aspectj = config("aspectj").hide
   }
 
   override def requires = JvmPlugin
@@ -80,8 +80,9 @@ object SbtAspectj extends AutoPlugin {
   object Ajc {
     def writeLintProperties = Def.task {
       val props = lintProperties.value
+      val dir = aspectjDirectory.value
       if (props.nonEmpty) {
-        val file = aspectjDirectory.value / "lint.properties"
+        val file = dir / "lint.properties"
         IO.writeLines(file, props)
         Some(file)
       } else None
@@ -99,15 +100,19 @@ object SbtAspectj extends AutoPlugin {
     def ajcTask = Def.task {
       val cacheDir  = streams.value.cacheDirectory / "aspectj"
       val outputDir = classDirectory.value
+      val ajcInputs = inputs.value
+      val ajcSources = sources.value
+      val ajcBinaries = binaries.value
+      val options = aspectjOptions.value
+      val classpath = aspectjClasspath.value.files
+      val log = streams.value.log
 
       val cached = FileFunction.cached(cacheDir / "ajc-inputs", FilesInfo.hash) { _ =>
-        runAjc(inputs.value, sources.value, binaries.value, outputDir,
-          aspectjOptions.value, aspectjClasspath.value.files, cacheDir, streams.value.log
-        )
+        runAjc(ajcInputs, ajcSources, ajcBinaries, outputDir, options, classpath, cacheDir, log)
         Set(outputDir)
       }
-      val expanded = (inputs.value ++ binaries.value) flatMap { i => if (i.isDirectory) (i ** "*.class").get else Seq(i) }
-      val cacheInputs = (expanded ++ sources.value).toSet
+      val expanded = (ajcInputs ++ ajcBinaries) flatMap { i => if (i.isDirectory) (i ** "*.class").get else Seq(i) }
+      val cacheInputs = (expanded ++ ajcSources).toSet
       cached(cacheInputs)
       outputDir
     }
@@ -168,16 +173,12 @@ object SbtAspectj extends AutoPlugin {
     }
 
     def copyResourcesTask = Def.task {
-      val classes = (classDirectory in Compile).value
-      val mappings = (copyResources in Compile).value
-
-      val cacheFile = streams.value.cacheDirectory / "aspectj" / "resource-sync"
-      val mapped = if (inputs.value contains classes) {
-        mappings map (_._2) pair rebase(classes, classDirectory.value)
-      } else Seq.empty
-
-      Sync(cacheFile)(mapped)
-      mapped
+      val ajcInputs = inputs.value
+      val compileClassDir = (classDirectory in Compile).value
+      val resourceMappings = (copyResources in Compile).value
+      val aspectjClassDir = classDirectory.value
+      val taskStreams = streams.value
+      SbtAspectjExtra.copyResources(ajcInputs, compileClassDir, resourceMappings, aspectjClassDir, taskStreams)
     }
 
     def runAjcMain(options: Array[String], log: Logger): Unit = {
@@ -187,8 +188,8 @@ object SbtAspectj extends AutoPlugin {
       val handler = new MessageHandler
       val showWeaveInfo = options contains "-showWeaveInfo"
       val verbose = options contains "-verbose"
+      var errors = false
       val logger = new IMessageHandler {
-        var errors = false
         def handleMessage(message: IMessage): Boolean = {
           import IMessage._
           message.getKind match {
@@ -208,7 +209,7 @@ object SbtAspectj extends AutoPlugin {
       handler.setInterceptor(logger)
       ajc.setHolder(handler)
       ajc.runMain(options, false)
-      if (logger.errors) throw new AbortException("AspectJ failed")
+      if (errors) throw new AbortException("AspectJ failed")
     }
 
     def getWeaver = Def.task {

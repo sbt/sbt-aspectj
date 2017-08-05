@@ -1,1 +1,1 @@
-addSbtPlugin("com.typesafe.sbt" % "sbt-aspectj" % Option(System.getProperty("project.version")).getOrElse("0.10-SNAPSHOT"))
+addSbtPlugin("com.lightbend.sbt" % "sbt-aspectj" % sys.props("project.version"))

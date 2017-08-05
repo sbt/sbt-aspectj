@@ -1,4 +1,4 @@
-package com.typesafe.sbt
+package com.lightbend.sbt
 
 import sbt._
 import sbt.Keys._

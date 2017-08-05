@@ -1,6 +1,6 @@
-import com.typesafe.sbt.SbtAspectj.useInstrumentedClasses
+import com.lightbend.sbt.SbtAspectj.useInstrumentedClasses
 
-organization := "com.typesafe.sbt.aspectj"
+organization := "com.lightbend.sbt.aspectj"
 version := "0.1-SNAPSHOT"
 scalaVersion := "2.12.1"
 
@@ -16,6 +16,8 @@ fullClasspath in Runtime := useInstrumentedClasses(Runtime).value
 
 // for sbt scripted test:
 TaskKey[Unit]("check") := {
+  import scala.sys.process.Process
+
   val cp = (fullClasspath in Runtime).value
   val mc = (mainClass in Runtime).value
   val opts = (javaOptions in run in Compile).value
