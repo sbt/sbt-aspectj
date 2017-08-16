@@ -13,11 +13,10 @@ bintrayRepository := "sbt-plugin-releases"
 bintrayPackage := name.value
 bintrayReleaseOnPublish := false
 
-scriptedSettings
 scriptedDependencies := publishLocal.value
 scriptedLaunchOpts ++= Seq("-Xms512m", "-Xmx512m", s"-Dproject.version=${version.value}")
 
-crossSbtVersions := Vector("0.13.16", "1.0.0-RC3")
+crossSbtVersions := Vector("1.0.0", "0.13.16")
 
 import ReleaseTransformations._
 releaseProcess := Seq[ReleaseStep](
