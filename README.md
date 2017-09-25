@@ -3,7 +3,7 @@ sbt-aspectj
 
 [sbt] plugin for weaving with [aspectj]. This plugin requires sbt 0.13.5+.
 
-[![Build Status](https://travis-ci.org/sbt/sbt-aspectj.png?branch=master)](https://travis-ci.org/sbt/sbt-aspectj)
+[![Build Status](https://travis-ci.org/sbt/sbt-aspectj.png?branch=master)](https://travis-ci.org/sbt/sbt-aspectj)[ ![Download](https://api.bintray.com/packages/sbt/sbt-plugin-releases/sbt-aspectj/images/download.svg) ](https://bintray.com/sbt/sbt-plugin-releases/sbt-aspectj/_latestVersion)
 
 
 Add plugin
