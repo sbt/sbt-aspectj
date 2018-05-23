@@ -16,7 +16,7 @@ bintrayReleaseOnPublish := false
 scriptedDependencies := publishLocal.value
 scriptedLaunchOpts ++= Seq("-Xms512m", "-Xmx512m", s"-Dproject.version=${version.value}")
 
-crossSbtVersions := Vector("1.0.0", "0.13.16")
+crossSbtVersions := Vector("1.1.5", "0.13.17")
 
 import ReleaseTransformations._
 releaseProcess := Seq[ReleaseStep](
