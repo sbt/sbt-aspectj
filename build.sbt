@@ -4,7 +4,7 @@ sbtPlugin := true
 organization := "com.lightbend.sbt"
 name := "sbt-aspectj"
 
-libraryDependencies += "org.aspectj" % "aspectjtools" % "1.8.10"
+libraryDependencies += "org.aspectj" % "aspectjtools" % "1.9.1"
 
 publishMavenStyle := false
 
