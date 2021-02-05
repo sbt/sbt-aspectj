@@ -27,13 +27,13 @@ object SbtAspectj extends AutoPlugin {
   override def projectSettings: Seq[Def.Setting[_]] = aspectjSettings
 
   def defaultAspectjSettings = Seq(
-    aspectjVersion := "1.8.10",
+    aspectjVersion := "1.9.6",
     aspectjDirectory := crossTarget.value / "aspectj",
     aspectjShowWeaveInfo := false,
     aspectjVerbose := false,
     aspectjCompileOnly := false,
     aspectjOutXml := aspectjCompileOnly.value,
-    aspectjSourceLevel := "-1.5",
+    aspectjSourceLevel := "-1.9",
     aspectjLintProperties := Seq.empty,
     aspectjLintPropertiesFile := writeLintProperties.value,
     aspectjExtraOptions := Seq.empty,
