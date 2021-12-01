@@ -24,7 +24,7 @@ ThisBuild / homepage := Some(url("https://github.com/haoqin/sbt-aspectj"))
 // Remove all additional repository other than Maven Central from POM
 ThisBuild / pomIncludeRepository := { _ => false }
 ThisBuild / publishTo := {
-  val nexus = "https://oss.sonatype.org/"
+  val nexus = "https://s01.oss.sonatype.org/"
   if (isSnapshot.value) Some("snapshots" at nexus + "content/repositories/snapshots")
   else Some("releases" at nexus + "service/local/staging/deploy/maven2")
 }
