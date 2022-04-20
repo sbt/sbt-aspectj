@@ -17,7 +17,7 @@ ThisBuild / developers := List(
   )
 )
 
-ThisBuild / description := "sbt-aspectj that supports aspectj 1.9.6"
+ThisBuild / description := "sbt-aspectj that supports aspectj 1.9.9.1"
 ThisBuild / licenses := List("Apache 2" -> new URL("http://www.apache.org/licenses/LICENSE-2.0.txt"))
 ThisBuild / homepage := Some(url("https://github.com/haoqin/sbt-aspectj"))
 

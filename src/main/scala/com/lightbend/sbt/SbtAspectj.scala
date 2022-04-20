@@ -27,7 +27,7 @@ object SbtAspectj extends AutoPlugin {
   override def projectSettings: Seq[Def.Setting[_]] = aspectjSettings
 
   def defaultAspectjSettings = Seq(
-    aspectjVersion := "1.9.6",
+    aspectjVersion := "1.9.9.1",
     aspectjDirectory := crossTarget.value / "aspectj",
     aspectjShowWeaveInfo := false,
     aspectjVerbose := false,
