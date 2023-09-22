@@ -1,22 +1,17 @@
 
 sbtPlugin := true
 
-organization := "com.lightbend.sbt"
+organization := "com.liyutech"
 name := "sbt-aspectj"
 
-libraryDependencies += "org.aspectj" % "aspectjtools" % "1.8.10"
+libraryDependencies += "org.aspectj" % "aspectjtools" % "1.9.9.1"
 
-publishMavenStyle := false
-
-bintrayOrganization := Some("sbt")
-bintrayRepository := "sbt-plugin-releases"
-bintrayPackage := name.value
-bintrayReleaseOnPublish := false
+publishMavenStyle := true
 
 scriptedDependencies := publishLocal.value
-scriptedLaunchOpts ++= Seq("-Xms512m", "-Xmx512m", s"-Dproject.version=${version.value}")
+//scriptedLaunchOpts ++= Seq("-Xms512m", "-Xmx512m", s"-Dproject.version=${version.value}")
 
-crossSbtVersions := Vector("1.1.5", "0.13.17")
+crossSbtVersions := Vector("1.6.2", "1.4.6", "1.1.5", "0.13.17")
 
 import ReleaseTransformations._
 releaseProcess := Seq[ReleaseStep](
@@ -28,7 +23,6 @@ releaseProcess := Seq[ReleaseStep](
   commitReleaseVersion,
   tagRelease,
   releaseStepCommandAndRemaining("^ publish"),
-  releaseStepTask(bintrayRelease),
   setNextVersion,
   commitNextVersion,
   pushChanges
